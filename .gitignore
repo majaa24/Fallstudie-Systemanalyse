@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.vscode/
+.idea/
+.DS_Store
+.env
+
+# eigene Daten (Passwort, Zeiteintraege) bleiben lokal
+daten/
