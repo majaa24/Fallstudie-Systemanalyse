@@ -7,5 +7,5 @@ venv/
 .DS_Store
 .env
 
-# eigene Daten (Passwort, Zeiteintraege) bleiben lokal
+# eigene Daten (Passwort, Zeiteinträge) bleiben lokal
 daten/

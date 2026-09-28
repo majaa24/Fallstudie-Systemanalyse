@@ -1,8 +1,8 @@
 # Webserver
 flask>=3.0
 
-# startet Flask auf Railway (laeuft nur unter Linux, lokal reicht python app.py)
+# startet Flask auf Railway (läuft nur unter Linux, lokal reicht python app.py)
 gunicorn>=22.0
 
-# Zeitzonen-Daten fuer Europe/Berlin, unter Windows nicht dabei
+# Zeitzonen-Daten für Europe/Berlin, unter Windows nicht dabei
 tzdata

@@ -12,7 +12,7 @@ geöffnet, installieren muss man nichts.
 ## Stand
 
 - [x] Grundgerüst: README, requirements.txt, .gitignore
-- [ ] Datenmodell und Zeitrechnung
+- [x] Datenmodell und Zeitrechnung
 - [ ] Prüfungen nach dem ArbZG
 - [ ] Speichern, Benutzer und Passwort
 - [ ] Gleitzeit, Ampel und Stempeluhr
