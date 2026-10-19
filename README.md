@@ -13,8 +13,9 @@ geöffnet, installieren muss man nichts.
 
 - [x] Grundgerüst: README, requirements.txt, .gitignore
 - [x] Datenmodell und Zeitrechnung
+- [x] Speichern in JSON-Dateien
+- [ ] Mehrere Benutzer und sicheres Passwort
 - [ ] Prüfungen nach dem ArbZG
-- [ ] Speichern, Benutzer und Passwort
 - [ ] Gleitzeit, Ampel und Stempeluhr
 - [ ] Webserver und Railway
 - [ ] Oberfläche
@@ -42,9 +43,7 @@ Wie man das Programm lokal startet und auf Railway bringt, steht hier, sobald de
 
 ## Branches
 
-Wir arbeiten nach Gitflow:
+Wir arbeiten nach GitHub Flow:
 
-- `main`: nur fertige, abgenommene Stände
-- `develop`: aktueller Entwicklungsstand
-- `feature/...`: ein Branch je Aufgabe, kommt per Pull Request nach `develop`
-- `release/...` und `hotfix/...` bei Bedarf
+- `main`: lauffähiger Stand, wird nie direkt bearbeitet
+- `feature/...`: ein Branch je Aufgabe, zweigt von `main` ab und kommt per Pull Request zurück, nachdem jemand aus dem Team ihn gelesen hat
