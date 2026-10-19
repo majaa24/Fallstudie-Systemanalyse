@@ -13,8 +13,7 @@ geöffnet, installieren muss man nichts.
 
 - [x] Grundgerüst: README, requirements.txt, .gitignore
 - [x] Datenmodell und Zeitrechnung
-- [x] Speichern in JSON-Dateien
-- [ ] Mehrere Benutzer und sicheres Passwort
+- [x] Speichern, Benutzer und Passwort
 - [x] Prüfungen nach dem ArbZG
 - [ ] Gleitzeit, Ampel und Stempeluhr
 - [ ] Webserver und Railway
