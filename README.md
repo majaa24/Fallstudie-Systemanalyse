@@ -15,7 +15,7 @@ geöffnet, installieren muss man nichts.
 - [x] Datenmodell und Zeitrechnung
 - [x] Speichern in JSON-Dateien
 - [ ] Mehrere Benutzer und sicheres Passwort
-- [ ] Prüfungen nach dem ArbZG
+- [x] Prüfungen nach dem ArbZG
 - [ ] Gleitzeit, Ampel und Stempeluhr
 - [ ] Webserver und Railway
 - [ ] Oberfläche
