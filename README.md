@@ -18,7 +18,7 @@ geöffnet, installieren muss man nichts.
 - [x] Gleitzeit und Ampel
 - [x] Stempeluhr
 - [x] Webserver und Railway
-- [ ] Oberfläche
+- [x] Oberfläche
 - [ ] Beispieldaten und Dokumentation
 
 ## Technik
