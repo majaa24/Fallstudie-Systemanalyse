@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wendezeit · BBQ GmbH</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- Seitenleiste (nur eingeloggt) -->
+  <aside id="seitenleiste" class="seitenleiste" hidden>
+    <button id="marke-start" class="marke marke-knopf" type="button" title="Zur Startseite" aria-label="Zur Startseite">
+      <span class="logo-wechsel">
+        <svg width="40" height="40" viewBox="0 0 160 160" class="logo"><circle cx="80" cy="80" r="58" fill="none" stroke="#34456B" stroke-width="10"></circle><rect x="74" y="40" width="12" height="46" rx="3" fill="#34456B"></rect><rect x="62" y="30" width="36" height="20" rx="4" fill="#34456B"></rect><line x1="80" y1="80" x2="108" y2="96" stroke="#E08A2E" stroke-width="10" stroke-linecap="round"></line><circle cx="80" cy="80" r="8" fill="#E08A2E"></circle></svg>
+        <svg width="40" height="40" viewBox="0 0 40 40" class="haus" aria-hidden="true"><path d="M20 10 L30 18.5 V30 H23.5 V23 H16.5 V30 H10 V18.5 Z" fill="none" stroke="#34456B" stroke-width="2.6" stroke-linejoin="round"></path><path d="M7.5 20 L20 9.5 L32.5 20" fill="none" stroke="#E08A2E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </span>
+      <span class="marke-text"><span class="marke-name">Wendezeit</span><span class="marke-firma">BBQ GmbH</span></span>
+    </button>
+    <nav class="menue">
+      <span class="menue-titel">Menü</span>
+      <button class="nav" data-seite="konto"><span class="nav-punkt"></span><span class="nav-text"><span class="nav-name">Stundenkonto</span></span></button>
+      <button class="nav" data-seite="kalender"><span class="nav-punkt"></span><span class="nav-text"><span class="nav-name">Kalender</span></span></button>
+      <button class="nav" data-seite="gesetz"><span class="nav-punkt"></span><span class="nav-text"><span class="nav-name">Arbeitszeitgesetz</span></span></button>
+      <button class="nav" data-seite="einstellungen"><span class="nav-punkt"></span><span class="nav-text"><span class="nav-name">Einstellungen</span></span></button>
+    </nav>
+    <div class="nutzer">
+      <button id="nutzer-knopf" class="nutzer-knopf" type="button" title="Zu den Einstellungen">
+        <span id="sb-avatar" class="avatar">MA</span>
+        <span class="nutzer-text"><span id="sb-name" class="nutzer-name">Mitarbeiter</span><span id="sb-wochenstunden" class="nutzer-sub">40 h/Woche</span></span>
+      </button>
+      <button id="btn-abmelden" class="btn-geist">Abmelden</button>
+    </div>
+  </aside>
+
+  <main class="inhalt">
+
+    <!-- Login / Erststart -->
+    <section id="login" class="login">
+      <div class="login-links">
+        <div class="marke">
+          <svg width="40" height="40" viewBox="0 0 160 160" class="logo"><circle cx="80" cy="80" r="58" fill="none" stroke="#34456B" stroke-width="10"></circle><rect x="74" y="40" width="12" height="46" rx="3" fill="#34456B"></rect><rect x="62" y="30" width="36" height="20" rx="4" fill="#34456B"></rect><line x1="80" y1="80" x2="108" y2="96" stroke="#E08A2E" stroke-width="10" stroke-linecap="round"></line><circle cx="80" cy="80" r="8" fill="#E08A2E"></circle></svg>
+          <span class="login-marke">Wendezeit · BBQ GmbH</span>
+        </div>
+        <h1 class="login-claim">Arbeitszeit im Blick, Gesetz im Griff.</h1>
+        <ul class="login-liste">
+          <li><span class="nr">1</span><span>Arbeitszeit pro Tag im Kalender eintragen</span></li>
+          <li><span class="nr">2</span><span>Stundenkonto mit Ampel auf einen Blick</span></li>
+          <li><span class="nr">3</span><span>Hinweis, sobald das Arbeitszeitgesetz verletzt wird</span></li>
+        </ul>
+        <span class="login-fuss">Wendezeit 1.0 · Team TimeTracking, DHBW Stuttgart</span>
+      </div>
+      <form id="login-form" class="login-rechts">
+        <div class="login-kopf">
+          <h2 id="login-titel">Anmelden</h2>
+          <p id="login-text">Bitte geben Sie Ihr Passwort ein.</p>
+        </div>
+        <label>Passwort<input id="pw1" type="password" placeholder="mindestens 6 Zeichen" autocomplete="current-password"></label>
+        <label id="pw2-label" hidden>Passwort wiederholen<input id="pw2" type="password" autocomplete="new-password"></label>
+        <div id="login-fehler" class="meldung-fehler" hidden></div>
+        <button id="login-button" type="submit" class="btn-primaer">Anmelden</button>
+      </form>
+    </section>
+
+    <!-- Stundenkonto -->
+    <section id="seite-konto" class="seite" hidden>
+      <header><h1>Stundenkonto</h1></header>
+      <div id="konto-meldungen" class="spalte-8" hidden></div>
+      <div class="grid-2">
+        <div class="karte karte-dunkel">
+          <span class="klein-titel">Aktuelle Gleitzeit</span>
+          <span id="konto-zahl" class="konto-zahl">±0:00 h</span>
+        </div>
+        <div class="karte ampel-karte">
+          <div class="ampel-zeile">
+            <div class="ampel">
+              <div id="licht-rot" class="licht rot"></div>
+              <div id="licht-orange" class="licht orange"></div>
+              <div id="licht-gruen" class="licht gruen"></div>
+            </div>
+            <div class="ampel-text">
+              <span id="ampel-name" class="ampel-name">Grün</span>
+              <p id="ampel-hinweis" class="ampel-hinweis"></p>
+              <div class="balken-hintergrund"><div id="ampel-balken" class="balken"></div></div>
+              <span id="ampel-rest" class="hinweis-klein"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="karte stempeluhr">
+        <div class="stempel-links">
+          <div class="zeile-zwischen"><span class="klein-titel grau">Stempeluhr</span><span id="heute-text" class="klein-titel grau"></span></div>
+          <span id="uhrzeit" class="uhrzeit">00:00:00</span>
+          <div class="stempel-status"><span id="stempel-punkt" class="punkt"></span><span id="stempel-status-text">Nicht eingestempelt</span></div>
+        </div>
+        <div class="stempel-rechts">
+          <div class="grid-3">
+            <div class="kachel"><span class="kachel-titel">Eingestempelt</span><span id="stempel-beginn" class="kachel-wert">–</span></div>
+            <div class="kachel"><span class="kachel-titel">Gearbeitet</span><span id="stempel-gearbeitet" class="kachel-wert zahlen">00:00:00</span></div>
+            <div class="kachel"><span class="kachel-titel">Pause</span><span id="stempel-pause" class="kachel-wert zahlen">00:00:00</span></div>
+          </div>
+          <div class="knoepfe">
+            <button id="btn-einstempeln" class="btn-gruen">Einstempeln</button>
+            <button id="btn-pause-start" class="btn-orange" hidden>Pause starten</button>
+            <button id="btn-pause-ende" class="btn-primaer" hidden>Pause beenden</button>
+            <button id="btn-ausstempeln" class="btn-rot-rand" hidden>Ausstempeln</button>
+          </div>
+          <div id="stempel-warnung" class="meldung warnung" hidden></div>
+          <div id="stempel-hinweis" class="meldung-info" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kalender / Tabelle -->
+    <section id="seite-kalender" class="seite" hidden>
+      <header class="kalender-kopf">
+        <div class="kalender-kopf-links">
+          <h1>Kalender</h1>
+          <div class="umschalter">
+            <button class="tab aktiv" data-ansicht="kalender">Kalender</button>
+            <button class="tab" data-ansicht="tabelle">Tabelle</button>
+          </div>
+          <div class="monat-wahl">
+            <button id="monat-zurueck" class="btn-quadrat" aria-label="Zeitraum zurück">‹</button>
+            <span id="monat-titel" class="zeitraum-anzeige"></span>
+            <button id="monat-vor" class="btn-quadrat" aria-label="Zeitraum vor">›</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Filter (immer sichtbar): Zeitraum, Stundenkonto im Zeitraum und in der Tabelle der Status -->
+      <div id="filter-panel" class="karte filter-panel">
+        <div class="filter-felder">
+        <div class="filter-feld">
+          <span class="filter-feld-titel">Zeitraum</span>
+          <div class="umschalter">
+            <button class="zeitraum-tab" data-art="monat">Monat</button>
+            <button class="zeitraum-tab" data-art="quartal">Quartal</button>
+            <button class="zeitraum-tab" data-art="jahr">Jahr</button>
+          </div>
+        </div>
+        <label class="filter-feld">Jahr<select id="filter-jahr"></select></label>
+        <label id="filter-monat-feld" class="filter-feld">Monat
+          <select id="filter-monat">
+            <option value="1">Januar</option><option value="2">Februar</option><option value="3">März</option>
+            <option value="4">April</option><option value="5">Mai</option><option value="6">Juni</option>
+            <option value="7">Juli</option><option value="8">August</option><option value="9">September</option>
+            <option value="10">Oktober</option><option value="11">November</option><option value="12">Dezember</option>
+          </select>
+        </label>
+        <label id="filter-quartal-feld" class="filter-feld">Quartal
+          <select id="filter-quartal">
+            <option value="1">1. Quartal (Jan–Mär)</option>
+            <option value="2">2. Quartal (Apr–Jun)</option>
+            <option value="3">3. Quartal (Jul–Sep)</option>
+            <option value="4">4. Quartal (Okt–Dez)</option>
+          </select>
+        </label>
+        <div id="status-filter" class="filter-feld filter-feld-breit">
+          <span class="filter-feld-titel">Filter</span>
+          <div class="filter">
+            <button class="chip aktiv" data-filter="alle">Alle Tage</button>
+            <button class="chip" data-filter="verletzung">Nur Verletzungen</button>
+            <button class="chip" data-filter="warnung">Nur Warnungen</button>
+            <button class="chip" data-filter="abwesend">Abwesenheiten</button>
+            <button class="chip" data-filter="minus">Minusstunden</button>
+          </div>
+        </div>
+        </div>
+        <div class="gleitzeit-box">
+          <span class="gleitzeit-box-titel">Stundenkonto im Zeitraum</span>
+          <span id="zeitraum-gleitzeit" class="gleitzeit-box-wert">±0:00 h</span>
+        </div>
+      </div>
+
+      <div id="kalender-karte" class="karte kalender">
+        <div id="kalender-monate" class="kalender-monate"></div>
+        <div class="legende">
+          <span><i style="background:#3E9B6B"></i>in Ordnung</span>
+          <span><i style="background:#E08A2E"></i>Warnung</span>
+          <span><i style="background:#C6372A"></i>Verletzung</span>
+          <span><i style="background:#6F4FB0"></i>Feiertag</span>
+          <span><i style="background:#A78BDA"></i>Urlaub</span>
+          <span><i style="background:#8E9AAF"></i>Krankheit</span>
+          <span><i style="background:#C9B8E8"></i>Sonstige Abwesenheit</span>
+          <span><i style="background:#E3E2DD"></i>Wochenende</span>
+          <span class="legende-heute"><svg width="13" height="15" viewBox="0 0 26 30" aria-hidden="true"><line x1="13" y1="14" x2="13" y2="28" stroke="#3A3F4B" stroke-width="2.4" stroke-linecap="round"></line><circle cx="13" cy="9" r="7.5" fill="#C6372A"></circle><circle cx="10.5" cy="6.5" r="2.2" fill="#FFFFFF" opacity="0.6"></circle></svg>Heute</span>
+        </div>
+      </div>
+
+      <div id="tabelle-karte" class="karte tabelle" hidden>
+        <div class="scroll-x">
+          <div class="tabelle-innen">
+            <div class="tab-kopf">
+              <span>Datum</span><span>Status</span><span>Beginn</span><span>Ende</span><span>Pause</span><span>Gearbeitet</span><span>Saldo</span>
+            </div>
+            <div id="tabelle-zeilen"></div>
+            <div id="tabelle-leer" class="tabelle-leer" hidden></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Arbeitszeitgesetz -->
+    <section id="seite-gesetz" class="seite" hidden>
+      <header><h1>Arbeitszeitgesetz</h1></header>
+
+      <article id="gesetz-p2" class="karte gesetz-abschnitt">
+        <h2>§ 2 Begriffsbestimmungen</h2>
+        <blockquote class="gesetz-text"><p>(1) Arbeitszeit im Sinne dieses Gesetzes ist die Zeit vom Beginn bis zum Ende der Arbeit ohne die Ruhepausen; Arbeitszeiten bei mehreren Arbeitgebern sind zusammenzurechnen.</p></blockquote>
+      </article>
+
+      <article id="gesetz-p3" class="karte gesetz-abschnitt">
+        <h2>§ 3 Arbeitszeit der Arbeitnehmer</h2>
+        <blockquote class="gesetz-text"><p>Die werktägliche Arbeitszeit der Arbeitnehmer darf acht Stunden nicht überschreiten. Sie kann auf bis zu zehn Stunden nur verlängert werden, wenn innerhalb von sechs Kalendermonaten oder innerhalb von 24 Wochen im Durchschnitt acht Stunden werktäglich nicht überschritten werden.</p></blockquote>
+        <ul class="gesetz-regeln">
+          <li><span class="pille orange">Warnung</span><span>mehr als 8 Stunden Arbeitszeit an einem Tag</span></li>
+          <li><span class="pille rot">Verletzung</span><span>mehr als 10 Stunden Arbeitszeit an einem Tag</span></li>
+          <li><span class="pille orange">Warnung</span><span>im Durchschnitt mehr als 8 Stunden je Werktag, solange noch keine 6 Monate erfasst sind</span></li>
+          <li><span class="pille rot">Verletzung</span><span>im Durchschnitt der letzten 6 Monate mehr als 8 Stunden je Werktag (Montag bis Samstag)</span></li>
+        </ul>
+      </article>
+
+      <article id="gesetz-p4" class="karte gesetz-abschnitt">
+        <h2>§ 4 Ruhepausen</h2>
+        <blockquote class="gesetz-text"><p>Die Arbeit ist durch im voraus feststehende Ruhepausen von mindestens 30 Minuten bei einer Arbeitszeit von mehr als sechs bis zu neun Stunden und 45 Minuten bei einer Arbeitszeit von insgesamt mehr als neun Stunden zu unterbrechen. Die Ruhepausen nach Satz 1 können in Zeitabschnitte von jeweils mindestens 15 Minuten aufgeteilt werden. Länger als sechs Stunden hintereinander dürfen Arbeitnehmer nicht ohne Ruhepause beschäftigt werden.</p></blockquote>
+        <ul class="gesetz-regeln">
+          <li><span class="pille orange">Warnung</span><span>ab 5,5 Stunden noch keine 30 Minuten Pause, ab 8,5 Stunden noch keine 45 Minuten Pause</span></li>
+          <li><span class="pille rot">Verletzung</span><span>über 6 Stunden weniger als 30 Minuten Pause, über 9 Stunden weniger als 45 Minuten Pause</span></li>
+          <li><span class="pille rot">Verletzung</span><span>mehr als 6 Stunden am Stück ohne Pause</span></li>
+        </ul>
+      </article>
+
+      <article id="gesetz-p5" class="karte gesetz-abschnitt">
+        <h2>§ 5 Ruhezeit</h2>
+        <blockquote class="gesetz-text"><p>(1) Die Arbeitnehmer müssen nach Beendigung der täglichen Arbeitszeit eine ununterbrochene Ruhezeit von mindestens elf Stunden haben.</p></blockquote>
+        <ul class="gesetz-regeln">
+          <li><span class="pille rot">Verletzung</span><span>weniger als 11 Stunden zwischen dem Ende der Arbeit am Vortag und dem Beginn heute</span></li>
+          <li><span class="pille orange">Warnung</span><span>für den Vortag fehlt ein Eintrag, die Ruhezeit ist nicht prüfbar</span></li>
+        </ul>
+      </article>
+
+      <article id="gesetz-p9" class="karte gesetz-abschnitt">
+        <h2>§ 9 Sonn- und Feiertagsruhe</h2>
+        <blockquote class="gesetz-text"><p>(1) Arbeitnehmer dürfen an Sonn- und gesetzlichen Feiertagen von 0 bis 24 Uhr nicht beschäftigt werden.</p></blockquote>
+        <ul class="gesetz-regeln">
+          <li><span class="pille rot">Verletzung</span><span>Arbeit an einem Sonntag oder an einem gesetzlichen Feiertag in Baden-Württemberg, auch nach Mitternacht in einer Nachtschicht</span></li>
+        </ul>
+      </article>
+
+      <article id="gesetz-betrieb" class="karte gesetz-abschnitt">
+        <h2>Betriebliche Arbeitszeit</h2>
+        <blockquote class="gesetz-text"><p>Als betriebliche Arbeitszeit zählt nur die Zeit zwischen 6:00 und 22:00 Uhr. Zeit davor oder danach wird gespeichert und bei den Prüfungen nach dem Arbeitszeitgesetz berücksichtigt, fließt aber nicht in die Gleitzeit ein.</p></blockquote>
+        <ul class="gesetz-regeln">
+          <li><span class="pille orange">Warnung</span><span>Beginn vor 6:00 Uhr, Ende nach 22:00 Uhr oder Arbeit über Mitternacht</span></li>
+        </ul>
+      </article>
+    </section>
+
+    <!-- Einstellungen -->
+    <section id="seite-einstellungen" class="seite" hidden>
+      <header><h1>Einstellungen</h1></header>
+      <div class="karte einstellung">
+        <div class="einstellung-text"><span class="einstellung-titel">Arbeitszeitmodell</span><span class="einstellung-sub">Ihre regelmäßige Wochenarbeitszeit. Daraus ergibt sich die Sollzeit von <span id="soll-tag-text">8:00 h</span> pro Arbeitstag.</span></div>
+        <div class="grid-3 modell">
+          <button class="modell-btn" data-stunden="30"><span class="modell-zahl">30</span><span class="modell-sub">Stunden</span></button>
+          <button class="modell-btn" data-stunden="35"><span class="modell-zahl">35</span><span class="modell-sub">Stunden</span></button>
+          <button class="modell-btn" data-stunden="40"><span class="modell-zahl">40</span><span class="modell-sub">Stunden</span></button>
+        </div>
+      </div>
+      <div class="karte einstellung">
+        <div class="einstellung-text"><span class="einstellung-titel">Ampel für das Stundenkonto</span><span class="einstellung-sub">Ab welchem Plus oder Minus auf dem Stundenkonto die Ampel auf Orange und Rot springt.</span></div>
+        <div class="spalte-16 grenzen-felder">
+          <span class="grenzen-ueberschrift">Plusstunden</span>
+          <div class="grid-2-eng">
+            <label>Orange ab (+ Stunden)<input id="grenze-orange" type="number" min="0" step="1"></label>
+            <label>Rot ab (+ Stunden)<input id="grenze-rot" type="number" min="0" step="1"></label>
+          </div>
+          <span class="grenzen-ueberschrift">Minusstunden</span>
+          <div class="grid-2-eng">
+            <label>Orange ab (− Stunden)<input id="grenze-minus-orange" type="number" min="0" step="1"></label>
+            <label>Rot ab (− Stunden)<input id="grenze-minus-rot" type="number" min="0" step="1"></label>
+          </div>
+          <div id="einstellungen-meldung" class="meldung-fehler" hidden></div>
+        </div>
+        <div class="grenzen-voll">
+          <div class="grenzen-balken">
+            <div id="gb-minus-rot" style="background:#C6372A"></div><div id="gb-minus-orange" style="background:#E08A2E"></div><div id="gb-minus-gruen" style="background:#3E9B6B"></div><div id="gb-gruen" style="background:#3E9B6B"></div><div id="gb-orange" style="background:#E08A2E"></div><div id="gb-rot" style="background:#C6372A"></div>
+          </div>
+          <div class="grenzen-skala hinweis-klein">
+            <span id="gb-text-minus-rot"></span><span id="gb-text-minus-orange"></span><span id="gb-text-null">0 h</span><span id="gb-text-orange"></span><span id="gb-text-rot"></span>
+          </div>
+        </div>
+      </div>
+      <div class="karte einstellung">
+        <div class="einstellung-text"><span class="einstellung-titel">Beginn der Zeiterfassung</span><span class="einstellung-sub">Ab diesem Tag zählen Arbeitstage ohne Eintrag und ohne Abwesenheit als Minusstunden.</span></div>
+        <div class="spalte-16">
+          <label>Zeiterfassung ab<input id="erfassung-ab" type="date"></label>
+        </div>
+      </div>
+      <div class="karte einstellung">
+        <div class="einstellung-text"><span class="einstellung-titel">Name</span></div>
+        <div class="spalte-16">
+          <label>Ihr Name<input id="name-eingabe" type="text" maxlength="40" placeholder="Mitarbeiter" autocomplete="name"></label>
+        </div>
+      </div>
+      <div class="karte einstellung">
+        <div class="einstellung-text"><span class="einstellung-titel">Passwort ändern</span><span class="einstellung-sub">Mindestens 6 Zeichen.</span></div>
+        <form id="pw-form" class="spalte-14">
+          <label>Aktuelles Passwort<input id="pw-alt" type="password" autocomplete="current-password"></label>
+          <label>Neues Passwort<input id="pw-neu" type="password" autocomplete="new-password"></label>
+          <div id="pw-meldung" class="meldung-fehler" hidden></div>
+          <button type="submit" class="btn-primaer selbst-links">Passwort speichern</button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Tages-Popup -->
+<div id="popup" class="popup-hintergrund" hidden>
+  <div class="popup">
+    <div class="popup-kopf">
+      <div class="popup-datum"><span id="tag-wochentag" class="grau-text"></span><span id="tag-datum" class="popup-datum-text"></span></div>
+      <div class="popup-kopf-rechts"><span id="tag-status" class="status-pille"></span><button id="popup-schliessen" class="btn-quadrat klein">×</button></div>
+    </div>
+    <div id="tag-feiertag" class="meldung-lila" hidden></div>
+    <div id="tag-abwesend" class="meldung-lila zeile-zwischen" hidden><span id="tag-abwesend-text"></span><button id="btn-abwesenheit-entfernen" class="btn-lila-rand">Abwesenheit entfernen</button></div>
+
+    <div id="tag-arbeit" class="spalte-20">
+      <div class="grid-3">
+        <div class="kachel"><span class="kachel-titel">Soll</span><span id="tag-soll" class="kachel-wert gross"></span></div>
+        <div class="kachel"><span class="kachel-titel">Gearbeitet</span><span id="tag-ist" class="kachel-wert gross"></span></div>
+        <div class="kachel"><span class="kachel-titel">Saldo</span><span id="tag-saldo" class="kachel-wert gross"></span></div>
+      </div>
+      <div class="spalte-6">
+        <div class="tag-balken-hintergrund"><div id="tag-balken" class="tag-balken"></div><div id="tag-soll-marke" class="tag-soll-marke"></div></div>
+        <div class="zeile-zwischen hinweis-klein"><span>0 h</span><span>Soll <span id="tag-soll-2"></span></span><span>10 h</span></div>
+      </div>
+      <form id="eintrag-form" class="spalte-12">
+        <span id="form-titel" class="form-titel">Arbeitszeit eintragen</span>
+        <div class="grid-4">
+          <label>Beginn<input id="f-beginn" type="time" required></label>
+          <label>Ende<input id="f-ende" type="time" required></label>
+          <label>Pause (min)<input id="f-pause" type="number" min="0" step="5" required></label>
+          <label>Pause ab<input id="f-pause-ab" type="time"></label>
+        </div>
+        <div id="eintrag-fehler" class="meldung-fehler" hidden></div>
+        <div id="tag-meldungen" class="spalte-8" hidden></div>
+        <div class="knoepfe">
+          <button id="btn-speichern" type="submit" class="btn-primaer">Eintrag speichern</button>
+          <button id="btn-loeschen" type="button" class="btn-sekundaer" hidden>Eintrag löschen</button>
+        </div>
+      </form>
+    </div>
+
+    <form id="abwesenheit-form" class="abwesenheit-form" hidden>
+      <span class="form-titel">Abwesenheit eintragen</span>
+      <div class="abwesenheit-grid">
+        <label>Art
+          <select id="ab-art">
+            <option value="Urlaub">Urlaub</option>
+            <option value="Krankheit">Krankheit</option>
+            <option value="Sonderurlaub">Sonderurlaub</option>
+            <option value="Sonstige Abwesenheit">Sonstige Abwesenheit</option>
+          </select>
+        </label>
+        <label>Bis einschließlich<input id="ab-bis" type="date"></label>
+        <label id="ab-grund-label" class="volle-breite" hidden>Grund der Abwesenheit<input id="ab-grund" type="text" placeholder="z. B. Fortbildung, Behördengang, Umzug"></label>
+        <button type="submit" class="btn-lila">Eintragen</button>
+        <div id="ab-fehler" class="meldung-fehler volle-breite" hidden></div>
+      </div>
+      <span class="hinweis-klein">Ab <span id="ab-ab-datum"></span>, Wochenenden und Feiertage werden übersprungen. Abwesenheitstage zählen als Sollzeit erfüllt.</span>
+    </form>
+  </div>
+</div>
+
+<!-- Warn-Popup bei grober Verletzung -->
+<div id="verletzung-popup" class="popup-hintergrund verletzung-hintergrund" hidden>
+  <div class="popup verletzung-popup" role="alertdialog" aria-modal="true" aria-labelledby="verletzung-titel">
+    <div class="verletzung-kopf">
+      <svg class="warndreieck" width="84" height="74" viewBox="0 0 84 74" aria-hidden="true"><path d="M42 5 L79 69 H5 Z" fill="#C6372A" stroke="#C6372A" stroke-width="8" stroke-linejoin="round"></path><rect x="38" y="24" width="8" height="26" rx="4" fill="#FFFFFF"></rect><circle cx="42" cy="59" r="4.5" fill="#FFFFFF"></circle></svg>
+      <h2 id="verletzung-titel">Achtung</h2>
+      <p class="verletzung-aufforderung">Bitte melden Sie diese Verletzung Ihrem Vorgesetzten.</p>
+    </div>
+    <span id="verletzung-datum" class="grau-text"></span>
+    <div id="verletzung-liste" class="spalte-8 verletzung-liste"></div>
+    <button id="verletzung-ok" class="btn-primaer">Verstanden</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

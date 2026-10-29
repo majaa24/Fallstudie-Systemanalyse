@@ -35,7 +35,7 @@ def berechne_arbeitsminuten(beginn: time, ende: time, pause_minuten: int) -> int
     return arbeit
 
 
-# ---------- Betriebliche Arbeitszeit (6 bis 22 Uhr) ----------
+# Betriebliche Arbeitszeit (6 bis 22 Uhr)
 
 def ueberschneidung(von_a: int, bis_a: int, von_b: int, bis_b: int) -> int:
     """Wie viele Minuten zwei Zeitspannen gemeinsam haben."""
@@ -98,7 +98,7 @@ def laengste_zeit_ohne_pause(beginn: time, ende: time, pause_minuten: int, pause
     return max(pause_von - beginn_min, ende_min - (pause_von + pause_minuten))
 
 
-# ---------- Eingaben prüfen ----------
+# Eingaben prüfen 
 
 def pruefe_eingabe(beginn: time, ende: time, pause_minuten: int, pause_beginn) -> str:
     """Prüft einen Arbeitstag auf unmögliche Angaben. Gibt den Fehlertext zurück oder ""."""
@@ -122,7 +122,7 @@ def pruefe_eingabe(beginn: time, ende: time, pause_minuten: int, pause_beginn) -
     return ""
 
 
-# ---------- Soll und Kalender ----------
+# Soll und Kalender
 
 def sollminuten_je_tag(wochenstunden: int) -> int:
     """Sollzeit je Arbeitstag: Wochenstunden auf 5 Tage verteilt."""
@@ -149,7 +149,7 @@ def wochentag_name(datum: date) -> str:
     return WOCHENTAGE[datum.weekday()]
 
 
-# ---------- Uhrzeit in Deutschland ----------
+# Uhrzeit in Deutschland
 
 def jetzt() -> datetime:
     """Aktuelle Uhrzeit in Deutschland, mit Sommer- und Winterzeit."""
