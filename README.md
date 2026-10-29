@@ -9,6 +9,16 @@ Außerdem zeigt es die Gleitzeit je Monat, Quartal und Jahr und das Stundenkonto
 Wendezeit ist eine Webapplikation. Sie läuft auf Railway und wird unter Windows 11 einfach im Browser
 geöffnet, installieren muss man nichts.
 
+## Benutzen
+
+Wendezeit läuft unter **https://wendezeit-production-05e4.up.railway.app**
+
+1. Den Link im Browser öffnen (unter Windows 11 z. B. Edge oder Chrome)
+2. Mit dem Passwort anmelden, das Passwort gibt es beim Team
+
+Mehr braucht es nicht. In der Anwendung sind Beispieldaten geladen, damit Gleitzeit, Ampel und die
+Hinweise nach dem ArbZG gleich zu sehen sind.
+
 ## Stand
 
 - [x] Grundgerüst: README, requirements.txt, .gitignore
@@ -33,44 +43,6 @@ geöffnet, installieren muss man nichts.
 Die Fachlogik (ArbZG, Gleitzeit, Stempeluhr) liegt in einem eigenen Ordner `logik/` und weiß nichts von
 Flask. Eine spätere Mobile App kann dieselbe JSON-Schnittstelle nutzen wie die Weboberfläche.
 
-## Lokal starten
-
-Unter Windows reicht ein Doppelklick auf `start.bat`. Das Skript installiert die Pakete, startet den
-Server und öffnet http://localhost:5000 im Browser.
-
-Von Hand geht es so:
-
-```
-python -m pip install -r requirements.txt
-python app.py
-```
-
-Danach http://localhost:5000 im Browser öffnen. Beim ersten Start legt man das Passwort fest. Alle Daten
-landen als JSON im Ordner `daten/`.
-
-Die Tests laufen mit:
-
-```
-python -m unittest
-```
-
-## Beispieldaten
-
-```
-python demo_laden.py
-```
-
-Das Skript kopiert die Beispieldaten aus `daten_demo/` in den Datenordner. Vorhandene Einträge und
-Abwesenheiten werden dabei überschrieben, Passwort und Einstellungen bleiben.
-
-Damit die Demo zu jedem Zeitpunkt passt, werden die Daten um ganze Wochen verschoben, sodass sie bis
-gestern reichen. Die Wochentage bleiben gleich, Urlaub und Krankheit wandern mit und `erfassung_ab` wird
-auf den ersten Demotag gesetzt. Die Demo zeigt Warnungen und Verletzungen nach dem ArbZG und einen
-absichtlich vergessenen Arbeitstag.
-
-Feiertage wandern nicht mit. Landet ein Eintrag auf einem Feiertag, gibt das Skript einen Hinweis aus
-(§ 9 ArbZG). Vor einer Präsentation die Demo deshalb am Vortag laden und einmal durchklicken.
-
 ## Railway
 
 Einmalig einrichten:
@@ -92,7 +64,44 @@ kann das jeder, der die Adresse kennt.
 Ist der Dienst mit dem Repo verbunden, geht jeder Merge nach `main` automatisch live. Sonst lädt man
 den aktuellen Stand im Projektordner mit `railway up` hoch.
 
-Die Beispieldaten kommen auf Railway über `railway ssh` in den Dienst, dort `python demo_laden.py`.
+## Beispieldaten
+
+Auf Railway kommen die Beispieldaten so in den Dienst:
+
+```
+railway ssh --service wendezeit
+WENDEZEIT_DATEN=/data /app/.venv/bin/python demo_laden.py
+exit
+```
+
+Das Skript kopiert die Beispieldaten aus `daten_demo/` in den Datenordner. Vorhandene Einträge und
+Abwesenheiten werden dabei überschrieben, Passwort und Einstellungen bleiben.
+
+Damit die Demo zu jedem Zeitpunkt passt, werden die Daten um ganze Wochen verschoben, sodass sie bis
+gestern reichen. Die Wochentage bleiben gleich, Urlaub und Krankheit wandern mit und `erfassung_ab` wird
+auf den ersten Demotag gesetzt. Die Demo zeigt Warnungen und Verletzungen nach dem ArbZG und einen
+absichtlich vergessenen Arbeitstag.
+
+Feiertage wandern nicht mit. Landet ein Eintrag auf einem Feiertag, gibt das Skript einen Hinweis aus
+(§ 9 ArbZG). Vor einer Präsentation die Demo deshalb am Vortag laden und einmal durchklicken.
+
+## Für Entwickler
+
+Zum Ausprobieren von Änderungen läuft Wendezeit auch lokal:
+
+```
+python -m pip install -r requirements.txt
+python app.py
+```
+
+Danach http://localhost:5000 öffnen. Die Daten liegen dann im Ordner `daten/`, Beispieldaten kommen mit
+`python demo_laden.py` hinein.
+
+Die Tests laufen mit:
+
+```
+python -m unittest
+```
 
 ## Branches
 
