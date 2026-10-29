@@ -15,7 +15,8 @@ geöffnet, installieren muss man nichts.
 - [x] Datenmodell und Zeitrechnung
 - [x] Speichern, Benutzer und Passwort
 - [x] Prüfungen nach dem ArbZG
-- [ ] Gleitzeit, Ampel und Stempeluhr
+- [x] Gleitzeit und Ampel
+- [ ] Stempeluhr
 - [ ] Webserver und Railway
 - [ ] Oberfläche
 - [ ] Beispieldaten und Dokumentation
