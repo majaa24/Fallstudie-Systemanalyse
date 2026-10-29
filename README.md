@@ -19,7 +19,7 @@ geöffnet, installieren muss man nichts.
 - [x] Stempeluhr
 - [x] Webserver und Railway
 - [x] Oberfläche
-- [ ] Beispieldaten und Dokumentation
+- [x] Beispieldaten und Dokumentation
 
 ## Technik
 
@@ -33,13 +33,66 @@ geöffnet, installieren muss man nichts.
 Die Fachlogik (ArbZG, Gleitzeit, Stempeluhr) liegt in einem eigenen Ordner `logik/` und weiß nichts von
 Flask. Eine spätere Mobile App kann dieselbe JSON-Schnittstelle nutzen wie die Weboberfläche.
 
-## Installation
+## Lokal starten
+
+Unter Windows reicht ein Doppelklick auf `start.bat`. Das Skript installiert die Pakete, startet den
+Server und öffnet http://localhost:5000 im Browser.
+
+Von Hand geht es so:
 
 ```
 python -m pip install -r requirements.txt
+python app.py
 ```
 
-Wie man das Programm lokal startet und auf Railway bringt, steht hier, sobald der Webserver drin ist.
+Danach http://localhost:5000 im Browser öffnen. Beim ersten Start legt man das Passwort fest. Alle Daten
+landen als JSON im Ordner `daten/`.
+
+Die Tests laufen mit:
+
+```
+python -m unittest
+```
+
+## Beispieldaten
+
+```
+python demo_laden.py
+```
+
+Das Skript kopiert die Beispieldaten aus `daten_demo/` in den Datenordner. Vorhandene Einträge und
+Abwesenheiten werden dabei überschrieben, Passwort und Einstellungen bleiben.
+
+Damit die Demo zu jedem Zeitpunkt passt, werden die Daten um ganze Wochen verschoben, sodass sie bis
+gestern reichen. Die Wochentage bleiben gleich, Urlaub und Krankheit wandern mit und `erfassung_ab` wird
+auf den ersten Demotag gesetzt. Die Demo zeigt Warnungen und Verletzungen nach dem ArbZG und einen
+absichtlich vergessenen Arbeitstag.
+
+Feiertage wandern nicht mit. Landet ein Eintrag auf einem Feiertag, gibt das Skript einen Hinweis aus
+(§ 9 ArbZG). Vor einer Präsentation die Demo deshalb am Vortag laden und einmal durchklicken.
+
+## Railway
+
+Einmalig einrichten:
+
+1. Neues Projekt anlegen, Dienst aus diesem Repo, Branch `main`
+2. Ein Volume anlegen und unter `/data` einhängen, damit Passwort und Einträge einen Deploy überstehen
+3. Variablen setzen:
+   - `WENDEZEIT_DATEN` = `/data`
+   - `SECRET_KEY` = ein langer Zufallswert, z. B. aus `python -c "import secrets; print(secrets.token_hex(32))"`
+   - `TZ` = `Europe/Berlin`
+4. Unter Settings → Networking eine Domain erzeugen
+
+Railway erkennt Python an der `requirements.txt`, nimmt die Version aus `.python-version` und startet
+über das `Procfile` mit gunicorn.
+
+Nach dem ersten Deploy sofort die Seite öffnen und das Passwort festlegen. Solange keins gesetzt ist,
+kann das jeder, der die Adresse kennt.
+
+Ist der Dienst mit dem Repo verbunden, geht jeder Merge nach `main` automatisch live. Sonst lädt man
+den aktuellen Stand im Projektordner mit `railway up` hoch.
+
+Die Beispieldaten kommen auf Railway über `railway ssh` in den Dienst, dort `python demo_laden.py`.
 
 ## Branches
 
