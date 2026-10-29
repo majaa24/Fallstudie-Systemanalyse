@@ -85,6 +85,11 @@ class TestZeit(unittest.TestCase):
         # 8:00 bis 16:00 ohne Pause: 8 Stunden am Stück
         self.assertEqual(zeit.laengste_zeit_ohne_pause(time(8, 0), time(16, 0), 0, None), 480)
 
+    def test_jetzt_ohne_zeitzone(self):
+        # jetzt() gibt die Zeit ohne Zeitzone zurück, so wie die Stempeluhr sie speichert
+        self.assertIsNone(zeit.jetzt().tzinfo)
+        self.assertEqual(zeit.heute(), zeit.jetzt().date())
+
 
 if __name__ == "__main__":
     unittest.main()

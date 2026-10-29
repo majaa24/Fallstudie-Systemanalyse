@@ -1,5 +1,6 @@
 """Rechnen mit Uhrzeiten, Minuten und Sollzeit."""
-from datetime import date, time
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 # Betriebliche Arbeitszeit zählt nur zwischen 6:00 und 22:00 Uhr
 BETRIEB_BEGINN_MIN = 6 * 60
@@ -146,3 +147,17 @@ WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samsta
 def wochentag_name(datum: date) -> str:
     """Gibt den deutschen Wochentag zurück, z.B. "Dienstag"."""
     return WOCHENTAGE[datum.weekday()]
+
+
+# ---------- Uhrzeit in Deutschland ----------
+
+def jetzt() -> datetime:
+    """Aktuelle Uhrzeit in Deutschland, mit Sommer- und Winterzeit."""
+    # Der Server auf Railway läuft in UTC, datetime.now() geht dort 1 bis 2 Stunden nach.
+    # Die Zeitzone wird danach wieder entfernt, weil die Stempeluhr Zeiten ohne Zeitzone speichert
+    return datetime.now(ZoneInfo("Europe/Berlin")).replace(tzinfo=None)
+
+
+def heute() -> date:
+    """Heutiges Datum in Deutschland."""
+    return jetzt().date()

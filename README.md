@@ -17,7 +17,7 @@ geöffnet, installieren muss man nichts.
 - [x] Prüfungen nach dem ArbZG
 - [x] Gleitzeit und Ampel
 - [x] Stempeluhr
-- [ ] Webserver und Railway
+- [x] Webserver und Railway
 - [ ] Oberfläche
 - [ ] Beispieldaten und Dokumentation
 

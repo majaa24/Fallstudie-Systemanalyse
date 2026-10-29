@@ -9,7 +9,8 @@ from logik.modelle import Zeiteintrag, Abwesenheit, Einstellungen
 
 # Der Ordner "daten" liegt neben app.py
 PROJEKT_ORDNER = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
-DATEN_ORDNER = os.path.join(PROJEKT_ORDNER, "daten")
+# Auf Railway steht in WENDEZEIT_DATEN der Pfad zum Volume, sonst wären die Daten nach jedem Deploy weg
+DATEN_ORDNER = os.environ.get("WENDEZEIT_DATEN", os.path.join(PROJEKT_ORDNER, "daten"))
 
 DATEI_EINTRAEGE = "zeiteintraege.json"
 DATEI_ABWESENHEITEN = "abwesenheiten.json"
