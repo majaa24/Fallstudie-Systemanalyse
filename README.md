@@ -16,7 +16,7 @@ geöffnet, installieren muss man nichts.
 - [x] Speichern, Benutzer und Passwort
 - [x] Prüfungen nach dem ArbZG
 - [x] Gleitzeit und Ampel
-- [ ] Stempeluhr
+- [x] Stempeluhr
 - [ ] Webserver und Railway
 - [ ] Oberfläche
 - [ ] Beispieldaten und Dokumentation
