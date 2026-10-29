@@ -6,9 +6,9 @@ from logik import arbzg
 from logik.modelle import Zeiteintrag, Abwesenheit
 
 
-def tag(datum, beginn, ende, pause):
+def tag(datum, beginn, ende, pause, pause_beginn=None):
     """Kurze Hilfe zum Bauen eines Zeiteintrags."""
-    return Zeiteintrag(datum, beginn, ende, pause)
+    return Zeiteintrag(datum, beginn, ende, pause, pause_beginn)
 
 
 class TestArbZG(unittest.TestCase):
@@ -85,7 +85,7 @@ class TestArbZG(unittest.TestCase):
 
     # Alles zusammen
     def test_pruefe_tag_sammelt_alles(self):
-        vortag = tag(date(2026, 9, 12), time(8, 0), time(22, 0), 30)
+        vortag = tag(date(2026, 9, 12), time(8, 0), time(22, 0), 30, time(12, 0))
         heute = tag(date(2026, 9, 13), time(6, 0), time(17, 0), 0)
         paragraphen = []
         for meldung in arbzg.pruefe_tag(heute, vortag):
@@ -99,12 +99,12 @@ class TestArbZG(unittest.TestCase):
 
     # Nur grobe Verletzungen für das Warn-Popup
     def test_nur_verletzungen_ohne_verletzung(self):
-        meldungen = arbzg.pruefe_tag(tag(date(2026, 9, 14), time(8, 0), time(17, 30), 30), None)
+        meldungen = arbzg.pruefe_tag(tag(date(2026, 9, 14), time(8, 0), time(17, 30), 30, time(12, 0)), None)
         self.assertEqual(meldungen[0]["art"], "Warnung")
         self.assertEqual(arbzg.nur_verletzungen(meldungen), [])
 
     def test_nur_verletzungen_mit_verletzung(self):
-        meldungen = arbzg.pruefe_tag(tag(date(2026, 9, 14), time(7, 0), time(18, 30), 30), None)
+        meldungen = arbzg.pruefe_tag(tag(date(2026, 9, 14), time(7, 0), time(18, 30), 30, time(12, 0)), None)
         verletzungen = arbzg.nur_verletzungen(meldungen)
         self.assertEqual(len(verletzungen), 2)
         self.assertEqual(verletzungen[0]["paragraph"], "§ 3 ArbZG")
@@ -164,6 +164,11 @@ class TestArbZG(unittest.TestCase):
         eintrag = Zeiteintrag(date(2026, 9, 14), time(8, 0), time(17, 0), 30, time(15, 0))
         meldungen = arbzg.pruefe_pause_am_stueck(eintrag)
         self.assertEqual(meldungen[0]["text"], "7:00 h am Stück ohne Pause, erlaubt sind 6 Stunden.")
+
+    def test_p4_ohne_pause_nur_eine_meldung(self):
+        meldungen = arbzg.pruefe_tag(tag(date(2026, 9, 14), time(8, 0), time(15, 0), 0), None)
+        self.assertEqual(len(meldungen), 1)
+        self.assertEqual(meldungen[0]["text"], "Pause zu kurz: 0 min statt 30 min.")
 
     # Nachtschichten
     def test_nachtschicht_in_den_sonntag(self):

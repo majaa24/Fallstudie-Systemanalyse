@@ -2,6 +2,7 @@
 from datetime import date, timedelta
 
 from logik.modelle import Zeiteintrag, Abwesenheit
+from logik.speicher import finde_abwesenheit
 from logik.zeit import (berechne_arbeitsminuten, minuten_als_text, liegt_ausserhalb_betriebszeit,
                         zeit_in_minuten, ende_in_minuten, ist_nachtschicht, laengste_zeit_ohne_pause)
 
@@ -84,20 +85,12 @@ def pruefe_hoechstarbeitszeit(eintrag: Zeiteintrag) -> list[dict]:
     return []
 
 
-def ist_abwesend(datum: date, abwesenheiten: list[Abwesenheit]) -> bool:
-    """Liegt das Datum in einer Abwesenheit (Urlaub, Krankheit, Sonderurlaub, Sonstige)?"""
-    for abwesenheit in abwesenheiten:
-        if abwesenheit.von <= datum <= abwesenheit.bis:
-            return True
-    return False
-
-
 def werktage_im_zeitraum(von: date, bis: date, abwesenheiten: list[Abwesenheit]) -> int:
     """Werktage im Sinne des ArbZG (Montag bis Samstag), ohne Feiertage und ohne Abwesenheiten."""
     anzahl = 0
     datum = von
     while datum <= bis:
-        if datum.weekday() != 6 and feiertag_name(datum) == "" and not ist_abwesend(datum, abwesenheiten):
+        if datum.weekday() != 6 and feiertag_name(datum) == "" and finde_abwesenheit(abwesenheiten, datum) is None:
             anzahl = anzahl + 1
         datum = datum + timedelta(days=1)
     return anzahl
@@ -161,7 +154,8 @@ def pruefe_pause(eintrag: Zeiteintrag) -> list[dict]:
 
 def pruefe_pause_am_stueck(eintrag: Zeiteintrag) -> list[dict]:
     """§ 4 Satz 3 ArbZG: nicht länger als 6 Stunden hintereinander ohne Pause. """
-    if eintrag.pause_minuten == 0 or eintrag.pause_beginn is None:
+    # Ohne Pause meldet das schon pruefe_pause, sonst käme § 4 doppelt
+    if eintrag.pause_minuten == 0:
         return []
     am_stueck = laengste_zeit_ohne_pause(eintrag.beginn, eintrag.ende, eintrag.pause_minuten, eintrag.pause_beginn)
     if am_stueck > 6 * 60:
