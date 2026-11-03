@@ -3,6 +3,7 @@ import unittest
 from datetime import datetime, time, date
 
 from logik import stempeluhr
+from logik.modelle import Pause
 
 
 class TestStempeluhr(unittest.TestCase):
@@ -47,6 +48,18 @@ class TestStempeluhr(unittest.TestCase):
         eintrag, hinweis = stempeluhr.ausstempeln(zustand, datetime(2026, 9, 15, 17, 0))
         self.assertEqual(eintrag.pause_minuten, 0)
         self.assertIsNone(eintrag.pause_beginn)
+
+    def test_mehrere_pausen_bleiben_einzeln(self):
+        zustand = stempeluhr.neuer_zustand()
+        stempeluhr.einstempeln(zustand, datetime(2026, 9, 15, 8, 0))
+        stempeluhr.pause_starten(zustand, datetime(2026, 9, 15, 10, 0))
+        stempeluhr.pause_beenden(zustand, datetime(2026, 9, 15, 10, 15))
+        stempeluhr.pause_starten(zustand, datetime(2026, 9, 15, 14, 0))
+        stempeluhr.pause_beenden(zustand, datetime(2026, 9, 15, 14, 15))
+        eintrag, hinweis = stempeluhr.ausstempeln(zustand, datetime(2026, 9, 15, 17, 0))
+        self.assertEqual(eintrag.pause_minuten, 30)
+        self.assertEqual(eintrag.pause_beginn, time(10, 0))
+        self.assertEqual(eintrag.pausen, [Pause(time(10, 0), 15), Pause(time(14, 0), 15)])
 
     def test_falsche_reihenfolge_aendert_nichts(self):
         zustand = stempeluhr.neuer_zustand()

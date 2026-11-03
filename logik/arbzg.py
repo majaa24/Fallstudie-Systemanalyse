@@ -1,7 +1,7 @@
 """Prüfungen nach dem Arbeitszeitgesetz und Feiertage in Baden-Württemberg."""
 from datetime import date, timedelta
 
-from logik.modelle import Zeiteintrag, Abwesenheit
+from logik.modelle import Zeiteintrag, Abwesenheit, pausen_von
 from logik.speicher import finde_abwesenheit
 from logik.zeit import (berechne_arbeitsminuten, minuten_als_text, liegt_ausserhalb_betriebszeit,
                         zeit_in_minuten, ende_in_minuten, ist_nachtschicht, laengste_zeit_ohne_pause)
@@ -157,7 +157,7 @@ def pruefe_pause_am_stueck(eintrag: Zeiteintrag) -> list[dict]:
     # Ohne Pause meldet das schon pruefe_pause, sonst käme § 4 doppelt
     if eintrag.pause_minuten == 0:
         return []
-    am_stueck = laengste_zeit_ohne_pause(eintrag.beginn, eintrag.ende, eintrag.pause_minuten, eintrag.pause_beginn)
+    am_stueck = laengste_zeit_ohne_pause(eintrag.beginn, eintrag.ende, pausen_von(eintrag))
     if am_stueck > 6 * 60:
         return [melde("Verletzung", "§ 4 ArbZG",
                       minuten_als_text(am_stueck) + " am Stück ohne Pause, erlaubt sind 6 Stunden.")]

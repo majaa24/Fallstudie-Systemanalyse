@@ -5,7 +5,7 @@ import os
 import secrets
 from datetime import date, time
 
-from logik.modelle import Zeiteintrag, Abwesenheit, Einstellungen
+from logik.modelle import Zeiteintrag, Abwesenheit, Einstellungen, Pause, eintrag_mit_pausen
 
 # Der Ordner "daten" liegt neben app.py
 PROJEKT_ORDNER = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
@@ -93,11 +93,17 @@ def eintrag_zu_dict(eintrag: Zeiteintrag) -> dict:
         "ende": zeit_zu_text(eintrag.ende),
         "pause_minuten": eintrag.pause_minuten,
         "pause_beginn": zeit_oder_leer(eintrag.pause_beginn),
+        "pausen": [{"beginn": zeit_oder_leer(pause.beginn), "minuten": pause.minuten} for pause in eintrag.pausen],
     }
 
 
 def dict_zu_eintrag(daten: dict) -> Zeiteintrag:
-    """Wandelt ein Dictionary aus JSON in einen Zeiteintrag um. Ohne Pause ist der Pausenbeginn leer."""
+    """Wandelt ein Dictionary aus JSON in einen Zeiteintrag um. Ohne Pause ist der Pausenbeginn leer.
+    Ältere Einträge haben kein Feld "pausen", sie hatten nur eine Pause."""
+    if len(daten.get("pausen", [])) > 0:
+        pausen = [Pause(text_oder_none_zu_zeit(pause["beginn"]), int(pause["minuten"])) for pause in daten["pausen"]]
+        return eintrag_mit_pausen(text_zu_datum(daten["datum"]), text_zu_zeit(daten["beginn"]),
+                                  text_zu_zeit(daten["ende"]), pausen)
     return Zeiteintrag(
         datum=text_zu_datum(daten["datum"]),
         beginn=text_zu_zeit(daten["beginn"]),

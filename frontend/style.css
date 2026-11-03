@@ -229,6 +229,8 @@ button.meldung:hover{filter:brightness(0.96)}
 .tag-balken.gruen{background:#3E9B6B}.tag-balken.orange{background:#E08A2E}.tag-balken.rot{background:#C6372A}
 .tag-soll-marke{position:absolute;top:0;bottom:0;width:2px;background:#1B1F26;opacity:0.6}
 .form-titel{font-size:15px;font-weight:600}
+.pause-zeile{align-items:end}
+.pause-zeile .btn-sekundaer{padding:8px 12px}
 .popup label input,.popup label select{padding:10px 12px}
 .meldung{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45}
 .meldung.verletzung{background:#F7E3E0;color:#8A2A1F}.meldung.warnung{background:#F8EDD3;color:#6B4A0B}

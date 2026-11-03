@@ -63,17 +63,25 @@ def pause_lage(beginn: time, pause_beginn: time) -> int:
     return lage
 
 
-def berechne_betriebsminuten(beginn: time, ende: time, pause_minuten: int, pause_beginn) -> int:
+def pausen_spannen(beginn: time, pausen: list) -> list[tuple[int, int]]:
+    """Pausen als (von, bis) in Minuten ab Mitternacht des Starttags, nach Uhrzeit sortiert."""
+    spannen = []
+    for pause in pausen:
+        von = pause_lage(beginn, pause.beginn)
+        spannen.append((von, von + pause.minuten))
+    spannen.sort()
+    return spannen
+
+
+def berechne_betriebsminuten(beginn: time, ende: time, pausen: list) -> int:
     """Arbeitsminuten für die Gleitzeit. Es zählt nur die Zeit zwischen 6 und 22 Uhr.
-    Die Pause wird nur abgezogen, soweit sie auch zwischen 6 und 22 Uhr lag."""
+    Jede Pause wird nur abgezogen, soweit sie auch zwischen 6 und 22 Uhr lag."""
     beginn_min = zeit_in_minuten(beginn)
     ende_min = ende_in_minuten(beginn, ende)
     arbeit = minuten_im_betrieb(beginn_min, ende_min)
-    # Bei 0 Minuten gab es keine Pause, dann wird nichts abgezogen
     pause = 0
-    if pause_minuten > 0:
-        pause_von = pause_lage(beginn, pause_beginn)
-        pause = minuten_im_betrieb(pause_von, pause_von + pause_minuten)
+    for von, bis in pausen_spannen(beginn, pausen):
+        pause = pause + minuten_im_betrieb(von, bis)
     ergebnis = arbeit - pause
     if ergebnis < 0:
         ergebnis = 0
@@ -87,38 +95,43 @@ def liegt_ausserhalb_betriebszeit(beginn: time, ende: time) -> bool:
     return zeit_in_minuten(beginn) < BETRIEB_BEGINN_MIN or zeit_in_minuten(ende) > BETRIEB_ENDE_MIN
 
 
-def laengste_zeit_ohne_pause(beginn: time, ende: time, pause_minuten: int, pause_beginn) -> int:
-    """Längste Zeit am Stück ohne Pause in Minuten (Pause als ein Block)."""
-    beginn_min = zeit_in_minuten(beginn)
-    ende_min = ende_in_minuten(beginn, ende)
-    # Ohne Pause wurde der ganze Tag am Stück gearbeitet
-    if pause_minuten == 0:
-        return ende_min - beginn_min
-    pause_von = pause_lage(beginn, pause_beginn)
-    return max(pause_von - beginn_min, ende_min - (pause_von + pause_minuten))
+def laengste_zeit_ohne_pause(beginn: time, ende: time, pausen: list) -> int:
+    """Längste Zeit am Stück ohne Pause in Minuten. Jedes Stück zwischen zwei Pausen zählt einzeln.
+    Ohne Pause wurde der ganze Tag am Stück gearbeitet."""
+    laengste = 0
+    stueck_ab = zeit_in_minuten(beginn)
+    for von, bis in pausen_spannen(beginn, pausen):
+        laengste = max(laengste, von - stueck_ab)
+        stueck_ab = bis
+    return max(laengste, ende_in_minuten(beginn, ende) - stueck_ab)
 
 
 # Eingaben prüfen 
 
-def pruefe_eingabe(beginn: time, ende: time, pause_minuten: int, pause_beginn) -> str:
+def pruefe_eingabe(beginn: time, ende: time, pausen: list) -> str:
     """Prüft einen Arbeitstag auf unmögliche Angaben. Gibt den Fehlertext zurück oder ""."""
     if zeit_in_minuten(beginn) == zeit_in_minuten(ende):
         return "Beginn und Ende dürfen nicht gleich sein."
-    if pause_minuten < 0:
-        return "Die Pause darf nicht negativ sein."
+    for pause in pausen:
+        if pause.minuten < 0:
+            return "Die Pause darf nicht negativ sein."
     dauer = ende_in_minuten(beginn, ende) - zeit_in_minuten(beginn)
-    if pause_minuten >= dauer:
+    if sum(pause.minuten for pause in pausen) >= dauer:
         return "Die Pause ist länger als die Arbeitszeit."
 
     # Wer Pause gemacht hat, muss angeben, ab wann. Sonst lässt sich § 4 ArbZG nicht prüfen
-    if pause_minuten > 0 and pause_beginn is None:
-        return "Bitte angeben, ab wann die Pause war."
+    for pause in pausen:
+        if pause.beginn is None:
+            return "Bitte angeben, ab wann die Pause war."
 
-    # Die Pause muss innerhalb der Arbeitszeit liegen
-    if pause_minuten > 0:
-        pause_von = pause_lage(beginn, pause_beginn)
-        if pause_von < zeit_in_minuten(beginn) or pause_von + pause_minuten > ende_in_minuten(beginn, ende):
+    # Jede Pause muss innerhalb der Arbeitszeit liegen, und zwei Pausen dürfen sich nicht überschneiden
+    vorige_bis = zeit_in_minuten(beginn)
+    for von, bis in pausen_spannen(beginn, pausen):
+        if bis > ende_in_minuten(beginn, ende):
             return "Die Pause muss zwischen Beginn und Ende liegen."
+        if von < vorige_bis:
+            return "Die Pausen dürfen sich nicht überschneiden."
+        vorige_bis = bis
     return ""
 
 

@@ -1,7 +1,7 @@
 """Stempeluhr: Einstempeln, Pause, Ausstempeln. Zeiten stehen als Text "2026-09-15T08:00:00" im Zustand."""
 from datetime import datetime, time, timedelta
 
-from logik.modelle import Zeiteintrag
+from logik.modelle import Pause, eintrag_mit_pausen
 
 ZEITFORMAT = "%Y-%m-%dT%H:%M:%S"
 
@@ -49,22 +49,16 @@ def pause_beenden(zustand: dict, jetzt: datetime):
     zustand["status"] = "arbeitet"
 
 
-def pausen_minuten(zustand: dict) -> int:
-    """Summe aller beendeten Pausen in Minuten (gerundet)."""
-    sekunden = 0
+def pausen_liste(zustand: dict) -> list[Pause]:
+    """Alle beendeten Pausen einzeln, in Minuten gerundet. Unter einer Minute zählt keine Pause."""
+    pausen = []
     for pause in zustand["pausen"]:
         if pause["bis"] is not None:
-            dauer = text_zu_zeitpunkt(pause["bis"]) - text_zu_zeitpunkt(pause["von"])
-            sekunden = sekunden + dauer.total_seconds()
-    return round(sekunden / 60)
-
-
-def erste_pause_ab(zustand: dict):
-    """Uhrzeit, zu der die erste Pause begann. None, wenn es keine Pause gab."""
-    if len(zustand["pausen"]) == 0:
-        return None
-    von = text_zu_zeitpunkt(zustand["pausen"][0]["von"])
-    return time(von.hour, von.minute)
+            von = text_zu_zeitpunkt(pause["von"])
+            minuten = round((text_zu_zeitpunkt(pause["bis"]) - von).total_seconds() / 60)
+            if minuten > 0:
+                pausen.append(Pause(time(von.hour, von.minute), minuten))
+    return pausen
 
 
 def zuruecksetzen(zustand: dict):
@@ -92,13 +86,9 @@ def ausstempeln(zustand: dict, jetzt: datetime):
     if ende.hour == beginn.hour and ende.minute == beginn.minute:
         ende = beginn + timedelta(minutes=1)
 
-    pause = pausen_minuten(zustand)
-    # Unter einer Minute Pause: kein Pausenbeginn
-    pause_ab = None
-    if pause > 0:
-        pause_ab = erste_pause_ab(zustand)
-    eintrag = Zeiteintrag(beginn.date(), time(beginn.hour, beginn.minute), time(ende.hour, ende.minute),
-                          pause, pause_ab)
+    # Jede Pause bleibt einzeln erhalten, sonst wäre "am Stück" (§ 4 ArbZG) nicht prüfbar
+    eintrag = eintrag_mit_pausen(beginn.date(), time(beginn.hour, beginn.minute), time(ende.hour, ende.minute),
+                                 pausen_liste(zustand))
     hinweis = ("Ausgestempelt. Eintrag für " + beginn.strftime("%d.%m.%Y") + " gespeichert: "
                + beginn.strftime("%H:%M") + " bis " + ende.strftime("%H:%M") + ", "
                + str(eintrag.pause_minuten) + " min Pause.")

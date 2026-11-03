@@ -2,7 +2,7 @@
 import calendar
 from datetime import date, timedelta
 
-from logik.modelle import Zeiteintrag, Abwesenheit, Einstellungen
+from logik.modelle import Zeiteintrag, Abwesenheit, Einstellungen, pausen_von
 from logik import arbzg
 from logik.speicher import finde_eintrag, finde_abwesenheit, datum_zu_text, zeit_zu_text, zeit_oder_leer
 from logik.zeit import berechne_betriebsminuten, sollminuten_je_tag, ist_wochenende, wochentag_name
@@ -23,7 +23,7 @@ def soll_fuer_tag(datum: date, abwesenheiten: list[Abwesenheit], einstellungen: 
 
 def ist_fuer_eintrag(eintrag: Zeiteintrag) -> int:
     """Betriebliche Arbeitsminuten eines Eintrags (nur 6 bis 22 Uhr)."""
-    return berechne_betriebsminuten(eintrag.beginn, eintrag.ende, eintrag.pause_minuten, eintrag.pause_beginn)
+    return berechne_betriebsminuten(eintrag.beginn, eintrag.ende, pausen_von(eintrag))
 
 
 def zaehlt_fuer_gleitzeit(datum: date, abwesenheiten: list[Abwesenheit]) -> bool:
@@ -205,7 +205,8 @@ def ampel(saldo_minuten: int, einstellungen: Einstellungen) -> dict:
 def eintrag_fuer_api(eintrag: Zeiteintrag) -> dict:
     """Zeiteintrag so, wie die Oberfläche ihn erwartet."""
     return {"beginn": zeit_zu_text(eintrag.beginn), "ende": zeit_zu_text(eintrag.ende),
-            "pause": eintrag.pause_minuten, "pause_ab": zeit_oder_leer(eintrag.pause_beginn)}
+            "pause": eintrag.pause_minuten,
+            "pausen": [{"ab": zeit_oder_leer(pause.beginn), "minuten": pause.minuten} for pause in pausen_von(eintrag)]}
 
 
 def abwesenheit_fuer_api(abwesenheit: Abwesenheit) -> dict:

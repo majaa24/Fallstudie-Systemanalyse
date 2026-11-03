@@ -6,7 +6,7 @@ from datetime import date, datetime
 from flask import Flask, request, jsonify, session, send_from_directory
 
 from logik import speicher, gleitzeit, stempeluhr, arbzg, zeit
-from logik.modelle import Zeiteintrag, Abwesenheit
+from logik.modelle import Zeiteintrag, Abwesenheit, Pause, eintrag_mit_pausen, pausen_von
 from logik.speicher import text_zu_datum, text_zu_zeit, datum_zu_text, zeit_zu_text
 
 FRONTEND_ORDNER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend")
@@ -168,19 +168,18 @@ def api_daten():
 # Einträge
 
 def eintrag_aus_anfrage(daten: dict) -> Zeiteintrag:
-    """Baut aus den Formulardaten einen Zeiteintrag. "pause_ab" darf fehlen oder leer sein."""
-    pause = int(daten["pause"])
-    # Ohne Pause gibt es keinen Pausenbeginn, auch wenn das Formular einen mitschickt
-    pause_ab = None
-    if pause > 0:
-        pause_ab = speicher.text_oder_none_zu_zeit(daten.get("pause_ab", ""))
-    return Zeiteintrag(text_zu_datum(daten["datum"]), text_zu_zeit(daten["beginn"]), text_zu_zeit(daten["ende"]),
-                       pause, pause_ab)
+    """Baut aus den Formulardaten einen Zeiteintrag. "pausen" ist eine Liste aus {"ab": "12:00", "minuten": 30}.
+    Pausen mit 0 Minuten fallen weg, ein leeres "ab" wird None."""
+    pausen = []
+    for pause in daten["pausen"]:
+        pausen.append(Pause(speicher.text_oder_none_zu_zeit(pause.get("ab", "")), int(pause["minuten"])))
+    return eintrag_mit_pausen(text_zu_datum(daten["datum"]), text_zu_zeit(daten["beginn"]),
+                              text_zu_zeit(daten["ende"]), pausen)
 
 
 def fehler_fuer_eintrag(eintrag: Zeiteintrag) -> str:
     """Unmögliche Angaben wie Pause länger als die Arbeitszeit. "" wenn alles passt."""
-    return zeit.pruefe_eingabe(eintrag.beginn, eintrag.ende, eintrag.pause_minuten, eintrag.pause_beginn)
+    return zeit.pruefe_eingabe(eintrag.beginn, eintrag.ende, pausen_von(eintrag))
 
 
 def verletzungen_fuer(eintrag: Zeiteintrag, eintraege: list, abwesenheiten: list, einstellungen) -> list[dict]:

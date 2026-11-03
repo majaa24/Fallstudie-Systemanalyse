@@ -203,12 +203,18 @@ function stempelWarnungen(st, jetzt, arbeit, pause) {
   if (pause < pflicht) warnungen.push({ rot: true, text: '§ 4 ArbZG: Pause zu kurz, nötig sind ' + pflicht + ' min.' });
   else if (pause < bald) warnungen.push({ rot: false, text: '§ 4 ArbZG: Bald sind ' + bald + ' min Pause nötig, bisher ' + Math.floor(pause) + ' min.' });
 
-  // Am Stück seit dem Ende der letzten Pause. Ohne Pause meldet das schon die Prüfung oben,
-  // sonst käme § 4 doppelt (wie in pruefe_pause_am_stueck)
-  if (st.status === 'arbeitet' && st.pausen.length > 0) {
-    const amStueck = (jetzt - new Date(st.pausen[st.pausen.length - 1].bis)) / 60000;
-    if (amStueck > 360) warnungen.push({ rot: true, text: '§ 4 ArbZG: Über 6 Stunden am Stück ohne Pause.' });
-    else if (amStueck > 330) warnungen.push({ rot: false, text: '§ 4 ArbZG: Seit ' + dauer(Math.floor(amStueck)) + ' ohne Pause, nach 6 Stunden ist eine Pause Pflicht.' });
+  // Jedes Stück zwischen zwei Pausen zählt einzeln, wie in laengste_zeit_ohne_pause. Ohne Pause meldet
+  // das schon die Prüfung oben, sonst käme § 4 doppelt (wie in pruefe_pause_am_stueck)
+  if (st.pausen.length > 0) {
+    let laengste = 0, stueckAb = new Date(st.beginn);
+    st.pausen.forEach(p => {
+      laengste = Math.max(laengste, (new Date(p.von) - stueckAb) / 60000);
+      stueckAb = p.bis ? new Date(p.bis) : null;
+    });
+    // Das laufende Stück seit der letzten Pause (nicht während einer Pause)
+    const aktuell = stueckAb ? (jetzt - stueckAb) / 60000 : 0;
+    if (Math.max(laengste, aktuell) > 360) warnungen.push({ rot: true, text: '§ 4 ArbZG: Über 6 Stunden am Stück ohne Pause.' });
+    else if (aktuell > 330) warnungen.push({ rot: false, text: '§ 4 ArbZG: Seit ' + dauer(Math.floor(aktuell)) + ' ohne Pause, nach 6 Stunden ist eine Pause Pflicht.' });
   }
   return warnungen;
 }
@@ -310,8 +316,12 @@ function popupOeffnen(datum) {
   const t = tagFinden(datum);
   $('f-beginn').value = t.eintrag ? t.eintrag.beginn : '08:00';
   $('f-ende').value = t.eintrag ? t.eintrag.ende : '17:00';
-  $('f-pause').value = t.eintrag ? t.eintrag.pause : 30;
-  $('f-pause-ab').value = t.eintrag ? (t.eintrag.pause_ab || '') : '12:00';
+  // Neuer Tag: 30 min ab 12 Uhr vorschlagen. Die erste Pause steht oben, weitere darunter
+  const pausen = t.eintrag ? t.eintrag.pausen : [{ ab: '12:00', minuten: 30 }];
+  $('f-pause').value = pausen.length > 0 ? pausen[0].minuten : 0;
+  $('f-pause-ab').value = pausen.length > 0 ? pausen[0].ab : '';
+  $('weitere-pausen').innerHTML = '';
+  pausen.slice(1).forEach(p => pauseZeileDazu(p.minuten, p.ab));
   zeigen($('eintrag-fehler'), false);
   zeigen($('ab-fehler'), false);
   $('ab-bis').value = datum;
@@ -389,12 +399,29 @@ function vorschauLeeren(text) {
   zeigen($('tag-meldungen'), false);
 }
 
+// Weitere Pause unter der ersten. Nur Zahlen und Uhrzeiten, deshalb ist innerHTML hier unbedenklich
+function pauseZeileDazu(minuten, ab) {
+  const zeile = document.createElement('div');
+  zeile.className = 'grid-4 pause-zeile';
+  zeile.innerHTML = '<span></span>'
+    + '<button type="button" class="btn-sekundaer pause-entfernen">Entfernen</button>'
+    + '<label>Pause (min)<input class="w-pause" type="number" min="0" step="5"></label>'
+    + '<label>Pause ab<input class="w-pause-ab" type="time"></label>';
+  zeile.querySelector('.w-pause').value = minuten;
+  zeile.querySelector('.w-pause-ab').value = ab;
+  $('weitere-pausen').appendChild(zeile);
+}
+
 function formularWerte() {
   const beginn = $('f-beginn').value, ende = $('f-ende').value;
   // Ende vor Beginn ist erlaubt: dann endet die Schicht am nächsten Tag
   if (!beginn || !ende || beginn === ende) return null;
-  const pause = Number($('f-pause').value) || 0;
-  return { datum: zustand.gewaehlt, beginn, ende, pause, pause_ab: pause > 0 ? $('f-pause-ab').value : '' };
+  const pausen = [{ minuten: Number($('f-pause').value) || 0, ab: $('f-pause-ab').value }];
+  document.querySelectorAll('.pause-zeile').forEach(z => {
+    pausen.push({ minuten: Number(z.querySelector('.w-pause').value) || 0, ab: z.querySelector('.w-pause-ab').value });
+  });
+  // Pausen mit 0 Minuten zählen nicht, ihr Beginn ist egal
+  return { datum: zustand.gewaehlt, beginn, ende, pausen: pausen.filter(p => p.minuten !== 0) };
 }
 
 // Warn-Popup bei grober Verletzung (nur rot, Warnungen bleiben im Tages-Popup)
@@ -536,7 +563,14 @@ $('kalender-monate').addEventListener('click', (ev) => { const b = ev.target.clo
 $('tabelle-zeilen').addEventListener('click', (ev) => { const b = ev.target.closest('.tab-zeile'); if (b) popupOeffnen(b.dataset.datum); });
 $('popup-schliessen').addEventListener('click', popupSchliessen);
 $('popup').addEventListener('click', (ev) => { if (ev.target === $('popup')) popupSchliessen(); });
-['f-beginn', 'f-ende', 'f-pause', 'f-pause-ab'].forEach(id => $(id).addEventListener('input', zeichnePopup));
+['f-beginn', 'f-ende', 'f-pause', 'f-pause-ab', 'weitere-pausen'].forEach(id => $(id).addEventListener('input', zeichnePopup));
+$('btn-pause-dazu').addEventListener('click', () => { pauseZeileDazu(15, ''); zeichnePopup(); });
+$('weitere-pausen').addEventListener('click', (ev) => {
+  const knopf = ev.target.closest('.pause-entfernen');
+  if (!knopf) return;
+  knopf.closest('.pause-zeile').remove();
+  zeichnePopup();
+});
 
 $('eintrag-form').addEventListener('submit', async (ev) => {
   ev.preventDefault();
