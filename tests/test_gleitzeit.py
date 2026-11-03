@@ -163,7 +163,8 @@ class TestGleitzeit(unittest.TestCase):
                                             self.einstellungen, date(2026, 9, 2))
         self.assertEqual(len(tage), 30)
         erster = tage[0]
-        self.assertEqual(erster["eintrag"], {"beginn": "08:00", "ende": "17:00", "pause": 30, "pause_ab": "12:00"})
+        self.assertEqual(erster["eintrag"], {"beginn": "08:00", "ende": "17:00", "pause": 30,
+                                             "pausen": [{"ab": "12:00", "minuten": 30}]})
         self.assertEqual(erster["ist"], 510)
         self.assertEqual(erster["saldo"], 30)
         self.assertEqual(erster["status"], "orange")

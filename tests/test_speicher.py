@@ -5,7 +5,7 @@ import unittest
 from datetime import date, time
 
 from logik import speicher
-from logik.modelle import Zeiteintrag, Abwesenheit, Einstellungen
+from logik.modelle import Zeiteintrag, Abwesenheit, Einstellungen, Pause, eintrag_mit_pausen, pausen_von
 
 
 class TestSpeicher(unittest.TestCase):
@@ -62,6 +62,20 @@ class TestSpeicher(unittest.TestCase):
         geladen = speicher.lade_eintraege(self.ordner)
         self.assertEqual(geladen, eintraege)
         self.assertIsNone(geladen[0].pause_beginn)
+
+    def test_mehrere_pausen_speichern_und_laden(self):
+        eintraege = [eintrag_mit_pausen(date(2026, 10, 1), time(8, 0), time(17, 0),
+                                        [Pause(time(10, 0), 15), Pause(time(14, 0), 15)])]
+        speicher.speichere_eintraege(eintraege, self.ordner)
+        self.assertEqual(speicher.lade_eintraege(self.ordner), eintraege)
+
+    def test_altes_format_ohne_pausenliste(self):
+        # So liegen Einträge gespeichert, die vor der Pausenliste entstanden sind
+        daten = {"datum": "2026-10-01", "beginn": "08:00", "ende": "17:00",
+                 "pause_minuten": 30, "pause_beginn": "12:00"}
+        eintrag = speicher.dict_zu_eintrag(daten)
+        self.assertEqual(eintrag, Zeiteintrag(date(2026, 10, 1), time(8, 0), time(17, 0), 30, time(12, 0)))
+        self.assertEqual(pausen_von(eintrag), [Pause(time(12, 0), 30)])
 
     def test_passwort_richtig(self):
         hash_wert, salt = speicher.passwort_hash_erzeugen("geheim")

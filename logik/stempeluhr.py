@@ -1,8 +1,8 @@
 """Stempeluhr: Einstempeln, Pause, Ausstempeln. Zeiten stehen als Text "2026-09-15T08:00:00" im Zustand."""
 from datetime import datetime, time, timedelta
 
-from logik.modelle import Zeiteintrag
-from logik.zeit import PAUSE_ABSCHNITT_MIN
+from logik.modelle import Pause, eintrag_mit_pausen
+from logik.zeit import PAUSE_ABSCHNITT_MIN, zaehlende_pausen
 
 ZEITFORMAT = "%Y-%m-%dT%H:%M:%S"
 
@@ -50,35 +50,23 @@ def pause_beenden(zustand: dict, jetzt: datetime):
     zustand["status"] = "arbeitet"
 
 
-def pause_dauer(pause: dict) -> timedelta:
-    """Wie lange eine beendete Pause gedauert hat."""
-    return text_zu_zeitpunkt(pause["bis"]) - text_zu_zeitpunkt(pause["von"])
+def auf_minute(zeitpunkt: datetime) -> datetime:
+    """Schneidet die Sekunden ab, so wie bei Beginn und Ende des Arbeitstags."""
+    return zeitpunkt.replace(second=0, microsecond=0)
 
 
-def zaehlende_pausen(zustand: dict) -> list[dict]:
-    """Beendete Pausen ab 15 Minuten. Kürzere sind keine Ruhepause und zählen als Arbeitszeit."""
+def pausen_liste(zustand: dict) -> list[Pause]:
+    """Alle beendeten Pausen einzeln, auf ganze Minuten abgeschnitten. Unter einer Minute zählt keine Pause.
+    Würde man die Dauer runden, könnte eine Pause in die nächste hineinreichen."""
     pausen = []
     for pause in zustand["pausen"]:
-        if pause["bis"] is not None and pause_dauer(pause) >= timedelta(minutes=PAUSE_ABSCHNITT_MIN):
-            pausen.append(pause)
+        if pause["bis"] is not None:
+            von = auf_minute(text_zu_zeitpunkt(pause["von"]))
+            bis = auf_minute(text_zu_zeitpunkt(pause["bis"]))
+            minuten = int((bis - von).total_seconds() // 60)
+            if minuten > 0:
+                pausen.append(Pause(time(von.hour, von.minute), minuten))
     return pausen
-
-
-def pausen_minuten(zustand: dict) -> int:
-    """Summe der zählenden Pausen in Minuten (gerundet)."""
-    sekunden = 0
-    for pause in zaehlende_pausen(zustand):
-        sekunden = sekunden + pause_dauer(pause).total_seconds()
-    return round(sekunden / 60)
-
-
-def erste_pause_ab(zustand: dict):
-    """Uhrzeit, zu der die erste zählende Pause begann. None, wenn es keine gab."""
-    pausen = zaehlende_pausen(zustand)
-    if len(pausen) == 0:
-        return None
-    von = text_zu_zeitpunkt(pausen[0]["von"])
-    return time(von.hour, von.minute)
 
 
 def zuruecksetzen(zustand: dict):
@@ -106,14 +94,13 @@ def ausstempeln(zustand: dict, jetzt: datetime):
     if ende.hour == beginn.hour and ende.minute == beginn.minute:
         ende = beginn + timedelta(minutes=1)
 
-    pause = pausen_minuten(zustand)
-    kurze_pausen = len(zustand["pausen"]) - len(zaehlende_pausen(zustand))
-    # Ohne zählende Pause gibt es keinen Pausenbeginn
-    pause_ab = None
-    if pause > 0:
-        pause_ab = erste_pause_ab(zustand)
-    eintrag = Zeiteintrag(beginn.date(), time(beginn.hour, beginn.minute), time(ende.hour, ende.minute),
-                          pause, pause_ab)
+    # Jede Pause bleibt einzeln erhalten, sonst wäre "am Stück" (§ 4 ArbZG) nicht prüfbar.
+    # Pausen unter 15 min sind Arbeitszeit und kommen nicht in den Eintrag
+    alle_pausen = pausen_liste(zustand)
+    pausen = zaehlende_pausen(alle_pausen)
+    kurze_pausen = len(alle_pausen) - len(pausen)
+    eintrag = eintrag_mit_pausen(beginn.date(), time(beginn.hour, beginn.minute), time(ende.hour, ende.minute),
+                                 pausen)
     hinweis = ("Ausgestempelt. Eintrag für " + beginn.strftime("%d.%m.%Y") + " gespeichert: "
                + beginn.strftime("%H:%M") + " bis " + ende.strftime("%H:%M") + ", "
                + str(eintrag.pause_minuten) + " min Pause.")
