@@ -34,6 +34,14 @@ def nicht_angemeldet():
     return fehler("Nicht angemeldet")
 
 
+@app.errorhandler(KeyError)
+@app.errorhandler(TypeError)
+@app.errorhandler(ValueError)
+def ungueltige_anfrage(_fehler):
+    """Fehlt ein Feld oder steht Unsinn darin (z. B. "abc" als Uhrzeit), gibt es eine Meldung statt Fehler 500."""
+    return fehler("Die Eingabe ist unvollständig oder ungültig.")
+
+
 # Oberfläche ausliefern
 
 @app.route("/")
