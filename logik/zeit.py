@@ -7,6 +7,9 @@ BETRIEB_BEGINN_MIN = 6 * 60
 BETRIEB_ENDE_MIN = 22 * 60
 MINUTEN_JE_TAG = 24 * 60
 
+# Kürzere Unterbrechungen sind nach § 4 Satz 2 ArbZG keine Ruhepause
+PAUSE_ABSCHNITT_MIN = 15
+
 
 def zeit_in_minuten(zeit: time) -> int:
     """Rechnet eine Uhrzeit in Minuten seit Mitternacht um."""
@@ -26,9 +29,16 @@ def ende_in_minuten(beginn: time, ende: time) -> int:
     return ende_min
 
 
+def zaehlende_pause(pause_minuten: int) -> int:
+    """Pause, die als Ruhepause zählt. Unter 15 Minuten ist es Arbeitszeit, dann 0."""
+    if pause_minuten < PAUSE_ABSCHNITT_MIN:
+        return 0
+    return pause_minuten
+
+
 def berechne_arbeitsminuten(beginn: time, ende: time, pause_minuten: int) -> int:
     """Rechnet die Arbeitszeit in Minuten aus (ohne Pause), auch über Mitternacht."""
-    arbeit = ende_in_minuten(beginn, ende) - zeit_in_minuten(beginn) - pause_minuten
+    arbeit = ende_in_minuten(beginn, ende) - zeit_in_minuten(beginn) - zaehlende_pause(pause_minuten)
     # um negative/ungültige Einträge zu vermeiden
     if arbeit < 0:
         arbeit = 0
@@ -69,8 +79,9 @@ def berechne_betriebsminuten(beginn: time, ende: time, pause_minuten: int, pause
     beginn_min = zeit_in_minuten(beginn)
     ende_min = ende_in_minuten(beginn, ende)
     arbeit = minuten_im_betrieb(beginn_min, ende_min)
-    # Bei 0 Minuten gab es keine Pause, dann wird nichts abgezogen
+    # Ohne zählende Pause wird nichts abgezogen
     pause = 0
+    pause_minuten = zaehlende_pause(pause_minuten)
     if pause_minuten > 0:
         pause_von = pause_lage(beginn, pause_beginn)
         pause = minuten_im_betrieb(pause_von, pause_von + pause_minuten)
@@ -91,8 +102,8 @@ def laengste_zeit_ohne_pause(beginn: time, ende: time, pause_minuten: int, pause
     """Längste Zeit am Stück ohne Pause in Minuten (Pause als ein Block)."""
     beginn_min = zeit_in_minuten(beginn)
     ende_min = ende_in_minuten(beginn, ende)
-    # Ohne Pause wurde der ganze Tag am Stück gearbeitet
-    if pause_minuten == 0:
+    # Ohne zählende Pause wurde der ganze Tag am Stück gearbeitet
+    if zaehlende_pause(pause_minuten) == 0:
         return ende_min - beginn_min
     pause_von = pause_lage(beginn, pause_beginn)
     return max(pause_von - beginn_min, ende_min - (pause_von + pause_minuten))

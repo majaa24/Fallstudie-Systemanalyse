@@ -34,6 +34,17 @@ def nicht_angemeldet():
     return fehler("Nicht angemeldet")
 
 
+@app.errorhandler(KeyError)
+@app.errorhandler(TypeError)
+@app.errorhandler(ValueError)
+def ungueltige_anfrage(_fehler):
+    """Fehlt ein Feld oder steht Unsinn darin (z. B. "abc" als Uhrzeit), gibt es eine Meldung statt Fehler 500.
+    Ohne JSON liefert get_json(silent=True) None, das landet als TypeError auch hier."""
+    # Im Log steht der ganze Fehler, falls es doch ein Programmierfehler war
+    app.logger.warning("Ungültige Anfrage: %r", _fehler)
+    return fehler("Die Eingabe ist unvollständig oder ungültig.")
+
+
 # Oberfläche ausliefern
 
 @app.route("/")
@@ -60,7 +71,7 @@ def api_status():
 @app.route("/api/passwort-setzen", methods=["POST"])
 def api_passwort_setzen():
     """Erster Start: Passwort zweimal eingeben und als Hash speichern."""
-    daten = request.get_json()
+    daten = request.get_json(silent=True)
     einstellungen = speicher.lade_einstellungen()
     if einstellungen.passwort_hash != "":
         return fehler("Es gibt schon ein Passwort.")
@@ -79,7 +90,7 @@ def api_passwort_setzen():
 @app.route("/api/login", methods=["POST"])
 def api_login():
     """Passwort prüfen und Sitzung starten."""
-    daten = request.get_json()
+    daten = request.get_json(silent=True)
     einstellungen = speicher.lade_einstellungen()
     if not speicher.passwort_pruefen(daten["passwort"], einstellungen.passwort_hash, einstellungen.passwort_salt):
         return fehler("Falsches Passwort.")
@@ -99,7 +110,7 @@ def api_passwort_aendern():
     """Altes Passwort prüfen, neues Passwort speichern."""
     if not angemeldet():
         return nicht_angemeldet()
-    daten = request.get_json()
+    daten = request.get_json(silent=True)
     einstellungen = speicher.lade_einstellungen()
     if not speicher.passwort_pruefen(daten["alt"], einstellungen.passwort_hash, einstellungen.passwort_salt):
         return fehler("Aktuelles Passwort ist falsch.")
@@ -194,7 +205,7 @@ def api_vorschau():
     """Rechnet eine Eingabe durch, ohne sie zu speichern."""
     if not angemeldet():
         return nicht_angemeldet()
-    eintrag = eintrag_aus_anfrage(request.get_json())
+    eintrag = eintrag_aus_anfrage(request.get_json(silent=True))
     fehlertext = fehler_fuer_eintrag(eintrag)
     if fehlertext != "":
         return fehler(fehlertext)
@@ -207,7 +218,7 @@ def api_eintrag():
     """Speichert einen Zeiteintrag. Ein Eintrag am selben Datum wird ersetzt."""
     if not angemeldet():
         return nicht_angemeldet()
-    eintrag = eintrag_aus_anfrage(request.get_json())
+    eintrag = eintrag_aus_anfrage(request.get_json(silent=True))
     fehlertext = fehler_fuer_eintrag(eintrag)
     if fehlertext != "":
         return fehler(fehlertext)
@@ -223,7 +234,7 @@ def api_eintrag_loeschen():
     """Löscht den Zeiteintrag an einem Datum."""
     if not angemeldet():
         return nicht_angemeldet()
-    daten = request.get_json()
+    daten = request.get_json(silent=True)
     eintraege = speicher.lade_eintraege()
     speicher.entferne_eintrag(eintraege, text_zu_datum(daten["datum"]))
     speicher.speichere_eintraege(eintraege)
@@ -237,7 +248,7 @@ def api_abwesenheit():
     """Speichert eine Abwesenheit von ... bis ..., wenn sie sich mit keiner anderen überschneidet."""
     if not angemeldet():
         return nicht_angemeldet()
-    daten = request.get_json()
+    daten = request.get_json(silent=True)
     abwesenheit = Abwesenheit(text_zu_datum(daten["von"]), text_zu_datum(daten["bis"]),
                               daten["art"], daten.get("grund", ""))
     abwesenheiten = speicher.lade_abwesenheiten()
@@ -254,7 +265,7 @@ def api_abwesenheit_loeschen():
     """Löscht die Abwesenheit, die an diesem Datum beginnt."""
     if not angemeldet():
         return nicht_angemeldet()
-    daten = request.get_json()
+    daten = request.get_json(silent=True)
     abwesenheiten = speicher.lade_abwesenheiten()
     speicher.entferne_abwesenheit(abwesenheiten, text_zu_datum(daten["von"]))
     speicher.speichere_abwesenheiten(abwesenheiten)
@@ -281,7 +292,7 @@ def api_einstellungen():
     """Speichert Wochenstunden, Ampelgrenzen für Plus und Minus, Beginn der Zeiterfassung und Namen."""
     if not angemeldet():
         return nicht_angemeldet()
-    einstellungen = einstellungen_aus_anfrage(request.get_json())
+    einstellungen = einstellungen_aus_anfrage(request.get_json(silent=True))
     fehlertext = gleitzeit.pruefe_einstellungen(einstellungen)
     if fehlertext != "":
         return fehler(fehlertext)
@@ -296,7 +307,7 @@ def api_stempel():
     """Stempeluhr bedienen: einstempeln, pause_start, pause_ende, ausstempeln."""
     if not angemeldet():
         return nicht_angemeldet()
-    aktion = request.get_json()["aktion"]
+    aktion = request.get_json(silent=True)["aktion"]
     zustand = speicher.lade_stempeluhr()
     jetzt = zeit.jetzt()
     antwort = {"ok": True, "hinweis": ""}

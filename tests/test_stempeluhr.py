@@ -48,6 +48,28 @@ class TestStempeluhr(unittest.TestCase):
         self.assertEqual(eintrag.pause_minuten, 0)
         self.assertIsNone(eintrag.pause_beginn)
 
+    def test_pause_unter_15_min_ist_arbeitszeit(self):
+        zustand = stempeluhr.neuer_zustand()
+        stempeluhr.einstempeln(zustand, datetime(2026, 9, 15, 8, 0))
+        stempeluhr.pause_starten(zustand, datetime(2026, 9, 15, 12, 0))
+        stempeluhr.pause_beenden(zustand, datetime(2026, 9, 15, 12, 10))
+        eintrag, hinweis = stempeluhr.ausstempeln(zustand, datetime(2026, 9, 15, 14, 0))
+        self.assertEqual(eintrag.pause_minuten, 0)
+        self.assertIsNone(eintrag.pause_beginn)
+        self.assertIn("Pausen unter 15 min zählen als Arbeitszeit.", hinweis)
+
+    def test_kurze_pause_verschiebt_pausenbeginn_nicht(self):
+        # 5 min um 9:00 zählen nicht, die Pause beginnt also erst um 12:00
+        zustand = stempeluhr.neuer_zustand()
+        stempeluhr.einstempeln(zustand, datetime(2026, 9, 15, 8, 0))
+        stempeluhr.pause_starten(zustand, datetime(2026, 9, 15, 9, 0))
+        stempeluhr.pause_beenden(zustand, datetime(2026, 9, 15, 9, 5))
+        stempeluhr.pause_starten(zustand, datetime(2026, 9, 15, 12, 0))
+        stempeluhr.pause_beenden(zustand, datetime(2026, 9, 15, 12, 30))
+        eintrag, hinweis = stempeluhr.ausstempeln(zustand, datetime(2026, 9, 15, 17, 0))
+        self.assertEqual(eintrag.pause_minuten, 30)
+        self.assertEqual(eintrag.pause_beginn, time(12, 0))
+
     def test_falsche_reihenfolge_aendert_nichts(self):
         zustand = stempeluhr.neuer_zustand()
         stempeluhr.pause_starten(zustand, datetime(2026, 9, 15, 8, 0))

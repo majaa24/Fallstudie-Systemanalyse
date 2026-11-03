@@ -40,6 +40,20 @@ class TestArbZG(unittest.TestCase):
         meldungen = arbzg.pruefe_pause(tag(date(2026, 9, 14), time(7, 0), time(17, 0), 30))
         self.assertEqual(meldungen[0]["art"], "Verletzung")
 
+    def test_p4_pause_unter_15_min_zaehlt_nicht(self):
+        meldungen = arbzg.pruefe_pause(tag(date(2026, 9, 14), time(8, 0), time(15, 0), 10, time(12, 0)))
+        self.assertEqual(meldungen[0]["art"], "Verletzung")
+        self.assertEqual(meldungen[0]["text"], "Pause zu kurz: 10 min statt 30 min. Pausen unter 15 min zählen nicht.")
+
+    def test_p4_kurze_pause_ist_arbeitszeit(self):
+        # 10 min Pause werden nicht abgezogen: 6:05 h Arbeit, also sind 30 min Pause nötig
+        meldungen = arbzg.pruefe_pause(tag(date(2026, 9, 14), time(8, 0), time(14, 5), 10, time(12, 0)))
+        self.assertEqual(meldungen[0]["art"], "Verletzung")
+
+    def test_p4_pause_genau_15_min_zaehlt(self):
+        meldungen = arbzg.pruefe_pause(tag(date(2026, 9, 14), time(8, 0), time(14, 15), 15, time(12, 0)))
+        self.assertEqual(meldungen[0]["text"], "Bald sind 30 min Pause nötig, bisher nur 15 min.")
+
     def test_p4_warnung_ab_5_5h(self):
         meldungen = arbzg.pruefe_pause(tag(date(2026, 9, 14), time(8, 0), time(13, 45), 0))
         self.assertEqual(meldungen[0]["art"], "Warnung")

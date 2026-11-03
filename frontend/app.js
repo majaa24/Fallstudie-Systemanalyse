@@ -3,7 +3,7 @@
 
 // Zustand der Oberfläche
 const zustand = {
-  seite: 'konto',            // konto | kalender | einstellungen
+  seite: 'konto',            // konto | kalender | gesetz | einstellungen
   ansicht: 'kalender',       // kalender | tabelle
   filter: 'alle',            // alle | verletzung | warnung | abwesend | minus
   zeitraumArt: 'monat',      // monat | quartal | jahr  (Zeitraum-Filter im Kalender)
@@ -21,21 +21,22 @@ const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'A
 const STATUS_NAME = { gruen: 'in Ordnung', orange: 'Warnung', rot: 'Verletzung' };
 // Welche Meldung zu welchem Abschnitt auf der Seite "Arbeitszeitgesetz" führt
 const GESETZ_ANKER = { '§ 3 ArbZG': 'gesetz-p3', '§ 4 ArbZG': 'gesetz-p4', '§ 5 ArbZG': 'gesetz-p5', '§ 9 ArbZG': 'gesetz-p9', 'Betrieb': 'gesetz-betrieb' };
-// Pinnnadel für den heutigen Tag im Kalender
+// Pinnadel für den heutigen Tag im Kalender
 const HEUTE_PIN = '<svg class="heute-pin" width="26" height="30" viewBox="0 0 26 30" aria-hidden="true"><line x1="13" y1="14" x2="13" y2="28" stroke="#3A3F4B" stroke-width="2.4" stroke-linecap="round"></line><circle cx="13" cy="9" r="7.5" fill="#C6372A"></circle><circle cx="10.5" cy="6.5" r="2.2" fill="#FFFFFF" opacity="0.6"></circle></svg>';
 const AB_KLASSE = { 'Urlaub': 'urlaub', 'Krankheit': 'krankheit', 'Sonderurlaub': 'sonstige', 'Sonstige Abwesenheit': 'sonstige' };
 
 // Server ansprechen
 async function api(pfad, daten) {
   const optionen = daten ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(daten) } : {};
+  // Fehler im Aufbau wie bei einem Fehler vom Server, dann zeigen die Aufrufer die Meldung wie gewohnt an
+  let antwort;
   try {
-    const antwort = await fetch('/api' + pfad, optionen);
-    if (!antwort.ok) throw new Error('Serverfehler');
-    return antwort.json();
+    antwort = await fetch('/api' + pfad, optionen);
   } catch (fehler) {
-    // Aufbau wie bei einem Fehler vom Server, dann zeigen die Aufrufer die Meldung wie gewohnt an
     return { ok: false, fehler: 'Keine Verbindung zum Server. Bitte die Seite neu laden.' };
   }
+  if (!antwort.ok) return { ok: false, fehler: 'Fehler auf dem Server (' + antwort.status + '). Bitte erneut versuchen.' };
+  return antwort.json();
 }
 
 // Hilfsfunktionen zum Formatieren
@@ -48,9 +49,13 @@ function saldoText(min) {
   return zeichen + Math.floor(a / 60) + ':' + zwei(a % 60) + ' h';
 }
 function datumText(iso) { const [j, m, t] = iso.split('-'); return t + '.' + m + '.' + j; }
-function isoHeute() { const d = new Date(); return d.getFullYear() + '-' + zwei(d.getMonth() + 1) + '-' + zwei(d.getDate()); }
 function uhrText(datum) { const d = new Date(datum); return zwei(d.getHours()) + ':' + zwei(d.getMinutes()); }
 function hms(sek) { sek = Math.max(0, Math.floor(sek)); return zwei(Math.floor(sek / 3600)) + ':' + zwei(Math.floor(sek / 60) % 60) + ':' + zwei(sek % 60); }
+// Freier Text wie der Grund einer Abwesenheit kommt per innerHTML in die Seite. Ohne Maskieren
+// würde z. B. <img onerror=...> als HTML ausgeführt
+function maskiere(text) {
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 function komma(zahl) { return zahl.toFixed(1).replace('.', ','); }
 function zeigen(el, sichtbar) { el.hidden = !sichtbar; }
 
@@ -164,7 +169,7 @@ function zeichneStempeluhr(d) {
   // Gearbeitete Sekunden und Pausensekunden aus den Zeitstempeln rechnen
   let pauseSek = 0, arbeitSek = 0;
   if (st.status !== 'aus') {
-    st.pausen.forEach(p => { pauseSek += ((p.bis ? new Date(p.bis) : jetzt) - new Date(p.von)) / 1000; });
+    zaehlendePausen(st, jetzt).forEach(p => { pauseSek += p.sek; });
     arbeitSek = (jetzt - new Date(st.beginn)) / 1000 - pauseSek;
   }
   const punkt = $('stempel-punkt');
@@ -183,17 +188,31 @@ function zeichneStempeluhr(d) {
   $('stempel-hinweis').textContent = zustand.stempelHinweis;
   zeigen($('stempel-hinweis'), zustand.stempelHinweis !== '');
 
-  const warnungen = st.status === 'aus' ? [] : stempelWarnungen(st, jetzt, arbeitSek / 60, pauseSek / 60);
+  const warnungen = st.status === 'aus' ? [] : stempelWarnungen(st, jetzt);
   const rot = warnungen.some(w => w.rot);
   $('stempel-warnung').className = 'meldung ' + (rot ? 'verletzung' : 'warnung');
   $('stempel-warnung').innerHTML = warnungen.map(w => w.text).join('<br>');
   zeigen($('stempel-warnung'), warnungen.length > 0);
 }
 
+// Wie in stempeluhr.py zählen nur Pausen ab 15 min, kürzere sind Arbeitszeit. Die laufende Pause zählt mit
+function zaehlendePausen(st, jetzt) {
+  const liste = [];
+  st.pausen.forEach(p => {
+    const sek = ((p.bis ? new Date(p.bis) : jetzt) - new Date(p.von)) / 1000;
+    if (!p.bis || sek >= 15 * 60) liste.push({ von: p.von, bis: p.bis, sek: sek });
+  });
+  return liste;
+}
+
 // Warnt schon während der Arbeit, bevor beim Ausstempeln eine Verletzung entsteht.
 // Die Grenzen sind dieselben wie in logik/arbzg.py, bei einer Änderung beide Stellen anpassen.
-function stempelWarnungen(st, jetzt, arbeit, pause) {
+function stempelWarnungen(st, jetzt) {
   const warnungen = [];
+  const zaehlende = zaehlendePausen(st, jetzt);
+  let pause = 0;
+  zaehlende.forEach(p => { pause += p.sek / 60; });
+  const arbeit = (jetzt - new Date(st.beginn)) / 60000 - pause;
   if (arbeit > 600) warnungen.push({ rot: true, text: '§ 3 ArbZG: Über 10 Stunden gearbeitet. Bitte jetzt ausstempeln.' });
   else if (arbeit > 480) warnungen.push({ rot: false, text: '§ 3 ArbZG: Über 8 Stunden gearbeitet, erlaubt sind höchstens 10.' });
 
@@ -203,10 +222,10 @@ function stempelWarnungen(st, jetzt, arbeit, pause) {
   if (pause < pflicht) warnungen.push({ rot: true, text: '§ 4 ArbZG: Pause zu kurz, nötig sind ' + pflicht + ' min.' });
   else if (pause < bald) warnungen.push({ rot: false, text: '§ 4 ArbZG: Bald sind ' + bald + ' min Pause nötig, bisher ' + Math.floor(pause) + ' min.' });
 
-  // Am Stück seit dem Ende der letzten Pause. Ohne Pause meldet das schon die Prüfung oben,
+  // Am Stück seit dem Ende der letzten zählenden Pause. Ohne Pause meldet das schon die Prüfung oben,
   // sonst käme § 4 doppelt (wie in pruefe_pause_am_stueck)
-  if (st.status === 'arbeitet' && st.pausen.length > 0) {
-    const amStueck = (jetzt - new Date(st.pausen[st.pausen.length - 1].bis)) / 60000;
+  if (st.status === 'arbeitet' && zaehlende.length > 0) {
+    const amStueck = (jetzt - new Date(zaehlende[zaehlende.length - 1].bis)) / 60000;
     if (amStueck > 360) warnungen.push({ rot: true, text: '§ 4 ArbZG: Über 6 Stunden am Stück ohne Pause.' });
     else if (amStueck > 330) warnungen.push({ rot: false, text: '§ 4 ArbZG: Seit ' + dauer(Math.floor(amStueck)) + ' ohne Pause, nach 6 Stunden ist eine Pause Pflicht.' });
   }
@@ -240,7 +259,7 @@ function tagKachel(t, d) {
   let klasse = '', z1 = '', z2 = '';
   if (t.eintrag) { klasse = t.status; z1 = komma(t.ist / 60) + ' h'; z2 = t.eintrag.beginn + ' bis ' + t.eintrag.ende; }
   else if (t.feiertag) { klasse = 'feiertag'; z1 = 'Feiertag'; z2 = t.feiertag; }
-  else if (t.abwesenheit) { klasse = AB_KLASSE[t.abwesenheit.art]; z1 = t.abwesenheit.art; z2 = t.abwesenheit.grund || ''; }
+  else if (t.abwesenheit) { klasse = AB_KLASSE[t.abwesenheit.art]; z1 = t.abwesenheit.art; z2 = maskiere(t.abwesenheit.grund || ''); }
   else if (t.wochenende) { klasse = 'wochenende'; }
   else if (t.fehlt) { z1 = 'kein Eintrag'; z2 = saldoText(t.saldo); }
   if (t.datum === d.heute) klasse += ' heute';
@@ -271,14 +290,13 @@ function zeichneTabelle(d) {
       + '<span><span class="pille ' + typ + '">' + statusText + '</span></span>'
       + '<span>' + (t.eintrag ? t.eintrag.beginn : '') + '</span><span>' + (t.eintrag ? t.eintrag.ende : '') + '</span>'
       + '<span>' + (t.eintrag ? t.eintrag.pause + ' min' : '') + '</span>'
-      + '<span style="font-weight:500">' + (t.eintrag ? dauer(t.ist) : (typ === 'abwesend' ? (t.abwesenheit.grund || '') : '0:00 h')) + '</span>'
+      + '<span style="font-weight:500">' + (t.eintrag ? dauer(t.ist) : (typ === 'abwesend' ? maskiere(t.abwesenheit.grund || '') : '0:00 h')) + '</span>'
       + '<span class="saldo ' + saldoKlasse + '">' + saldoText(saldoMin) + '</span></button>');
   });
   $('tabelle-zeilen').innerHTML = zeilen.join('');
   $('tabelle-leer').textContent = 'Keine Tage für diesen Filter im Zeitraum ' + zeitraum().text + '.';
   zeigen($('tabelle-leer'), zeilen.length === 0);
 }
-function minuten(zeit) { const [h, m] = zeit.split(':').map(Number); return h * 60 + m; }
 
 // Einstellungen
 function zeichneEinstellungen(d) {
@@ -410,7 +428,7 @@ function zeigeVerletzung(antwort) {
 function meldungKnopf(m, mitArt) {
   const kopf = (mitArt ? m.art + ' · ' : '') + m.paragraph;
   return '<button type="button" class="meldung ' + m.art.toLowerCase() + '" data-anker="' + (GESETZ_ANKER[m.paragraph] || '') + '">'
-    + '<b>' + kopf + '</b><span>' + m.text + '</span><span class="meldung-link">Zum Gesetzestext ›</span></button>';
+    + '<b>' + maskiere(kopf) + '</b><span>' + maskiere(m.text) + '</span><span class="meldung-link">Zum Gesetzestext ›</span></button>';
 }
 
 function zeigeGesetz(anker) {
