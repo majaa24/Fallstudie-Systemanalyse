@@ -2,7 +2,7 @@
 import unittest
 from datetime import datetime, time, date
 
-from logik import stempeluhr
+from logik import stempeluhr, zeit
 from logik.modelle import Pause
 
 
@@ -60,6 +60,19 @@ class TestStempeluhr(unittest.TestCase):
         self.assertEqual(eintrag.pause_minuten, 30)
         self.assertEqual(eintrag.pause_beginn, time(10, 0))
         self.assertEqual(eintrag.pausen, [Pause(time(10, 0), 15), Pause(time(14, 0), 15)])
+
+    def test_pausen_in_derselben_minute_ueberschneiden_sich_nicht(self):
+        # Früher wurde die Dauer gerundet: 12:00:50 bis 12:30:50 wurde zu 12:00 mit 30 min und überschnitt
+        # die erste Pause, der gestempelte Tag ging verloren
+        zustand = stempeluhr.neuer_zustand()
+        stempeluhr.einstempeln(zustand, datetime(2026, 9, 15, 8, 0))
+        stempeluhr.pause_starten(zustand, datetime(2026, 9, 15, 12, 0, 0))
+        stempeluhr.pause_beenden(zustand, datetime(2026, 9, 15, 12, 0, 40))
+        stempeluhr.pause_starten(zustand, datetime(2026, 9, 15, 12, 0, 50))
+        stempeluhr.pause_beenden(zustand, datetime(2026, 9, 15, 12, 30, 50))
+        eintrag, hinweis = stempeluhr.ausstempeln(zustand, datetime(2026, 9, 15, 17, 0))
+        self.assertEqual(eintrag.pausen, [Pause(time(12, 0), 30)])
+        self.assertEqual(zeit.pruefe_eingabe(eintrag.beginn, eintrag.ende, eintrag.pausen), "")
 
     def test_falsche_reihenfolge_aendert_nichts(self):
         zustand = stempeluhr.neuer_zustand()

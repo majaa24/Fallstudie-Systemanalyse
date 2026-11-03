@@ -87,13 +87,16 @@ def text_oder_none_zu_datum(text: str):
 
 def eintrag_zu_dict(eintrag: Zeiteintrag) -> dict:
     """Wandelt einen Zeiteintrag in ein Dictionary für JSON um."""
+    pausen = []
+    for pause in eintrag.pausen:
+        pausen.append({"beginn": zeit_oder_leer(pause.beginn), "minuten": pause.minuten})
     return {
         "datum": datum_zu_text(eintrag.datum),
         "beginn": zeit_zu_text(eintrag.beginn),
         "ende": zeit_zu_text(eintrag.ende),
         "pause_minuten": eintrag.pause_minuten,
         "pause_beginn": zeit_oder_leer(eintrag.pause_beginn),
-        "pausen": [{"beginn": zeit_oder_leer(pause.beginn), "minuten": pause.minuten} for pause in eintrag.pausen],
+        "pausen": pausen,
     }
 
 
@@ -101,7 +104,9 @@ def dict_zu_eintrag(daten: dict) -> Zeiteintrag:
     """Wandelt ein Dictionary aus JSON in einen Zeiteintrag um. Ohne Pause ist der Pausenbeginn leer.
     Ältere Einträge haben kein Feld "pausen", sie hatten nur eine Pause."""
     if len(daten.get("pausen", [])) > 0:
-        pausen = [Pause(text_oder_none_zu_zeit(pause["beginn"]), int(pause["minuten"])) for pause in daten["pausen"]]
+        pausen = []
+        for pause in daten["pausen"]:
+            pausen.append(Pause(text_oder_none_zu_zeit(pause["beginn"]), int(pause["minuten"])))
         return eintrag_mit_pausen(text_zu_datum(daten["datum"]), text_zu_zeit(daten["beginn"]),
                                   text_zu_zeit(daten["ende"]), pausen)
     return Zeiteintrag(

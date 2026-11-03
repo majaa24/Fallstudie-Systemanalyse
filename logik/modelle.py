@@ -20,18 +20,36 @@ class Zeiteintrag:
     ende: time
     pause_minuten: int          # alle Pausen zusammen
     pause_beginn: time = None   # Beginn der ersten Pause; None, wenn es keine Pause gab
-    pausen: list = field(default_factory=list)   # mehrere Pausen einzeln; leer = höchstens eine Pause
+    pausen: list[Pause] = field(default_factory=list)   # mehrere Pausen einzeln; leer = höchstens eine Pause
 
 
 def eintrag_mit_pausen(datum: date, beginn: time, ende: time, pausen: list[Pause]) -> Zeiteintrag:
     """Baut einen Eintrag aus einzelnen Pausen. Summe und erster Pausenbeginn ergeben sich daraus.
     Pausen mit 0 Minuten fallen weg."""
-    pausen = [pause for pause in pausen if pause.minuten != 0]
+    echte_pausen = []
+    alle_mit_beginn = True
+    for pause in pausen:
+        if pause.minuten != 0:
+            echte_pausen.append(pause)
+            if pause.beginn is None:
+                alle_mit_beginn = False
+    pausen = echte_pausen
+
     # Nach Lage in der Schicht sortieren, damit 2:00 bei einer Nachtschicht nach 23:30 kommt.
     # Fehlt ein Beginn, meldet das pruefe_eingabe, dann bleibt die Reihenfolge
-    if all(pause.beginn is not None for pause in pausen):
-        pausen.sort(key=lambda pause: pause_lage(beginn, pause.beginn))
-    summe = sum(pause.minuten for pause in pausen)
+    if alle_mit_beginn:
+        nach_lage = []
+        for nummer in range(len(pausen)):
+            nach_lage.append((pause_lage(beginn, pausen[nummer].beginn), nummer))
+        nach_lage.sort()
+        sortiert = []
+        for lage, nummer in nach_lage:
+            sortiert.append(pausen[nummer])
+        pausen = sortiert
+
+    summe = 0
+    for pause in pausen:
+        summe = summe + pause.minuten
     erster_beginn = None
     if len(pausen) > 0:
         erster_beginn = pausen[0].beginn

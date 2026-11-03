@@ -112,11 +112,13 @@ def pruefe_eingabe(beginn: time, ende: time, pausen: list) -> str:
     """Prüft einen Arbeitstag auf unmögliche Angaben. Gibt den Fehlertext zurück oder ""."""
     if zeit_in_minuten(beginn) == zeit_in_minuten(ende):
         return "Beginn und Ende dürfen nicht gleich sein."
+    summe = 0
     for pause in pausen:
         if pause.minuten < 0:
             return "Die Pause darf nicht negativ sein."
+        summe = summe + pause.minuten
     dauer = ende_in_minuten(beginn, ende) - zeit_in_minuten(beginn)
-    if sum(pause.minuten for pause in pausen) >= dauer:
+    if summe >= dauer:
         return "Die Pause ist länger als die Arbeitszeit."
 
     # Wer Pause gemacht hat, muss angeben, ab wann. Sonst lässt sich § 4 ArbZG nicht prüfen

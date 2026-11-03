@@ -49,13 +49,20 @@ def pause_beenden(zustand: dict, jetzt: datetime):
     zustand["status"] = "arbeitet"
 
 
+def auf_minute(zeitpunkt: datetime) -> datetime:
+    """Schneidet die Sekunden ab, so wie bei Beginn und Ende des Arbeitstags."""
+    return zeitpunkt.replace(second=0, microsecond=0)
+
+
 def pausen_liste(zustand: dict) -> list[Pause]:
-    """Alle beendeten Pausen einzeln, in Minuten gerundet. Unter einer Minute zählt keine Pause."""
+    """Alle beendeten Pausen einzeln, auf ganze Minuten abgeschnitten. Unter einer Minute zählt keine Pause.
+    Würde man die Dauer runden, könnte eine Pause in die nächste hineinreichen."""
     pausen = []
     for pause in zustand["pausen"]:
         if pause["bis"] is not None:
-            von = text_zu_zeitpunkt(pause["von"])
-            minuten = round((text_zu_zeitpunkt(pause["bis"]) - von).total_seconds() / 60)
+            von = auf_minute(text_zu_zeitpunkt(pause["von"]))
+            bis = auf_minute(text_zu_zeitpunkt(pause["bis"]))
+            minuten = int((bis - von).total_seconds() // 60)
             if minuten > 0:
                 pausen.append(Pause(time(von.hour, von.minute), minuten))
     return pausen

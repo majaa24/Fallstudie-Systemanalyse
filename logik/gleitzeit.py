@@ -204,9 +204,11 @@ def ampel(saldo_minuten: int, einstellungen: Einstellungen) -> dict:
 
 def eintrag_fuer_api(eintrag: Zeiteintrag) -> dict:
     """Zeiteintrag so, wie die Oberfläche ihn erwartet."""
+    pausen = []
+    for pause in pausen_von(eintrag):
+        pausen.append({"ab": zeit_oder_leer(pause.beginn), "minuten": pause.minuten})
     return {"beginn": zeit_zu_text(eintrag.beginn), "ende": zeit_zu_text(eintrag.ende),
-            "pause": eintrag.pause_minuten,
-            "pausen": [{"ab": zeit_oder_leer(pause.beginn), "minuten": pause.minuten} for pause in pausen_von(eintrag)]}
+            "pause": eintrag.pause_minuten, "pausen": pausen}
 
 
 def abwesenheit_fuer_api(abwesenheit: Abwesenheit) -> dict:
