@@ -7,6 +7,9 @@ BETRIEB_BEGINN_MIN = 6 * 60
 BETRIEB_ENDE_MIN = 22 * 60
 MINUTEN_JE_TAG = 24 * 60
 
+# Kürzere Unterbrechungen sind nach § 4 Satz 2 ArbZG keine Ruhepause
+PAUSE_ABSCHNITT_MIN = 15
+
 
 def zeit_in_minuten(zeit: time) -> int:
     """Rechnet eine Uhrzeit in Minuten seit Mitternacht um."""
@@ -26,9 +29,26 @@ def ende_in_minuten(beginn: time, ende: time) -> int:
     return ende_min
 
 
-def berechne_arbeitsminuten(beginn: time, ende: time, pause_minuten: int) -> int:
-    """Rechnet die Arbeitszeit in Minuten aus (ohne Pause), auch über Mitternacht."""
-    arbeit = ende_in_minuten(beginn, ende) - zeit_in_minuten(beginn) - pause_minuten
+def zaehlende_pausen(pausen: list) -> list:
+    """Pausen, die als Ruhepause zählen. Jede unter 15 Minuten ist Arbeitszeit und fällt weg."""
+    zaehlende = []
+    for pause in pausen:
+        if pause.minuten >= PAUSE_ABSCHNITT_MIN:
+            zaehlende.append(pause)
+    return zaehlende
+
+
+def pausen_summe(pausen: list) -> int:
+    """Alle Pausen zusammen in Minuten."""
+    summe = 0
+    for pause in pausen:
+        summe = summe + pause.minuten
+    return summe
+
+
+def berechne_arbeitsminuten(beginn: time, ende: time, pausen: list) -> int:
+    """Rechnet die Arbeitszeit in Minuten aus (ohne zählende Pausen), auch über Mitternacht."""
+    arbeit = ende_in_minuten(beginn, ende) - zeit_in_minuten(beginn) - pausen_summe(zaehlende_pausen(pausen))
     # um negative/ungültige Einträge zu vermeiden
     if arbeit < 0:
         arbeit = 0
@@ -80,7 +100,7 @@ def berechne_betriebsminuten(beginn: time, ende: time, pausen: list) -> int:
     ende_min = ende_in_minuten(beginn, ende)
     arbeit = minuten_im_betrieb(beginn_min, ende_min)
     pause = 0
-    for von, bis in pausen_spannen(beginn, pausen):
+    for von, bis in pausen_spannen(beginn, zaehlende_pausen(pausen)):
         pause = pause + minuten_im_betrieb(von, bis)
     ergebnis = arbeit - pause
     if ergebnis < 0:
@@ -96,11 +116,11 @@ def liegt_ausserhalb_betriebszeit(beginn: time, ende: time) -> bool:
 
 
 def laengste_zeit_ohne_pause(beginn: time, ende: time, pausen: list) -> int:
-    """Längste Zeit am Stück ohne Pause in Minuten. Jedes Stück zwischen zwei Pausen zählt einzeln.
-    Ohne Pause wurde der ganze Tag am Stück gearbeitet."""
+    """Längste Zeit am Stück ohne Pause in Minuten. Jedes Stück zwischen zwei zählenden Pausen zählt einzeln.
+    Ohne zählende Pause wurde der ganze Tag am Stück gearbeitet."""
     laengste = 0
     stueck_ab = zeit_in_minuten(beginn)
-    for von, bis in pausen_spannen(beginn, pausen):
+    for von, bis in pausen_spannen(beginn, zaehlende_pausen(pausen)):
         laengste = max(laengste, von - stueck_ab)
         stueck_ab = bis
     return max(laengste, ende_in_minuten(beginn, ende) - stueck_ab)
@@ -112,13 +132,11 @@ def pruefe_eingabe(beginn: time, ende: time, pausen: list) -> str:
     """Prüft einen Arbeitstag auf unmögliche Angaben. Gibt den Fehlertext zurück oder ""."""
     if zeit_in_minuten(beginn) == zeit_in_minuten(ende):
         return "Beginn und Ende dürfen nicht gleich sein."
-    summe = 0
     for pause in pausen:
         if pause.minuten < 0:
             return "Die Pause darf nicht negativ sein."
-        summe = summe + pause.minuten
     dauer = ende_in_minuten(beginn, ende) - zeit_in_minuten(beginn)
-    if summe >= dauer:
+    if pausen_summe(pausen) >= dauer:
         return "Die Pause ist länger als die Arbeitszeit."
 
     # Wer Pause gemacht hat, muss angeben, ab wann. Sonst lässt sich § 4 ArbZG nicht prüfen

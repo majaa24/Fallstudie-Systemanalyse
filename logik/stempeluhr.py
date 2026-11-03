@@ -2,6 +2,7 @@
 from datetime import datetime, time, timedelta
 
 from logik.modelle import Pause, eintrag_mit_pausen
+from logik.zeit import PAUSE_ABSCHNITT_MIN, zaehlende_pausen
 
 ZEITFORMAT = "%Y-%m-%dT%H:%M:%S"
 
@@ -93,11 +94,17 @@ def ausstempeln(zustand: dict, jetzt: datetime):
     if ende.hour == beginn.hour and ende.minute == beginn.minute:
         ende = beginn + timedelta(minutes=1)
 
-    # Jede Pause bleibt einzeln erhalten, sonst wäre "am Stück" (§ 4 ArbZG) nicht prüfbar
+    # Jede Pause bleibt einzeln erhalten, sonst wäre "am Stück" (§ 4 ArbZG) nicht prüfbar.
+    # Pausen unter 15 min sind Arbeitszeit und kommen nicht in den Eintrag
+    alle_pausen = pausen_liste(zustand)
+    pausen = zaehlende_pausen(alle_pausen)
+    kurze_pausen = len(alle_pausen) - len(pausen)
     eintrag = eintrag_mit_pausen(beginn.date(), time(beginn.hour, beginn.minute), time(ende.hour, ende.minute),
-                                 pausen_liste(zustand))
+                                 pausen)
     hinweis = ("Ausgestempelt. Eintrag für " + beginn.strftime("%d.%m.%Y") + " gespeichert: "
                + beginn.strftime("%H:%M") + " bis " + ende.strftime("%H:%M") + ", "
                + str(eintrag.pause_minuten) + " min Pause.")
+    if kurze_pausen > 0:
+        hinweis = hinweis + " Pausen unter " + str(PAUSE_ABSCHNITT_MIN) + " min zählen als Arbeitszeit."
     zuruecksetzen(zustand)
     return eintrag, hinweis

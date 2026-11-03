@@ -6,7 +6,7 @@ erfassung_ab wird auf den ersten Demotag gesetzt."""
 import os
 from datetime import date, timedelta
 
-from logik import arbzg, speicher
+from logik import arbzg, speicher, zeit
 
 PROJEKT_ORDNER = os.path.dirname(os.path.abspath(__file__))
 QUELLE = os.path.join(PROJEKT_ORDNER, "daten_demo")
@@ -22,7 +22,7 @@ def wochen_verschiebung(letzter_tag: date, heute: date) -> timedelta:
 def demo_laden(heute: date = None, ziel: str = speicher.DATEN_ORDNER) -> list[str]:
     """Verschiebt und speichert die Demodaten. Gibt Hinweise zu Einträgen an Feiertagen zurück."""
     if heute is None:
-        heute = date.today()
+        heute = zeit.heute()
     eintraege = speicher.lade_eintraege(QUELLE)
     abwesenheiten = speicher.lade_abwesenheiten(QUELLE)
 

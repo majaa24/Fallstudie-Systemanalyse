@@ -10,14 +10,14 @@ class TestZeit(unittest.TestCase):
     """Minuten rechnen, Betriebszeit, Sollzeit."""
 
     def test_arbeitsminuten_normaler_tag(self):
-        self.assertEqual(zeit.berechne_arbeitsminuten(time(8, 0), time(16, 45), 30), 495)
+        self.assertEqual(zeit.berechne_arbeitsminuten(time(8, 0), time(16, 45), [Pause(time(12, 0), 30)]), 495)
 
     def test_arbeitsminuten_nie_negativ(self):
-        self.assertEqual(zeit.berechne_arbeitsminuten(time(8, 0), time(8, 10), 30), 0)
+        self.assertEqual(zeit.berechne_arbeitsminuten(time(8, 0), time(8, 10), [Pause(time(8, 0), 30)]), 0)
 
     def test_frueher_tag_gesamt_und_betrieblich(self):
         # 5:30 bis 15:00 mit 45 min Pause: gesamt 8:45 h, betrieblich 8:15 h
-        self.assertEqual(zeit.berechne_arbeitsminuten(time(5, 30), time(15, 0), 45), 8 * 60 + 45)
+        self.assertEqual(zeit.berechne_arbeitsminuten(time(5, 30), time(15, 0), [Pause(time(12, 0), 45)]), 8 * 60 + 45)
         self.assertEqual(zeit.berechne_betriebsminuten(time(5, 30), time(15, 0), [Pause(time(12, 0), 45)]), 8 * 60 + 15)
 
     def test_betriebsminuten_innerhalb_bleibt_gleich(self):
@@ -43,7 +43,7 @@ class TestZeit(unittest.TestCase):
 
     # Nachtschichten über Mitternacht
     def test_nachtschicht_arbeitsminuten(self):
-        self.assertEqual(zeit.berechne_arbeitsminuten(time(22, 0), time(6, 0), 30), 450)
+        self.assertEqual(zeit.berechne_arbeitsminuten(time(22, 0), time(6, 0), [Pause(time(2, 0), 30)]), 450)
         self.assertTrue(zeit.ist_nachtschicht(time(22, 0), time(6, 0)))
         self.assertFalse(zeit.ist_nachtschicht(time(8, 0), time(17, 0)))
 
@@ -58,6 +58,20 @@ class TestZeit(unittest.TestCase):
 
     def test_pause_im_betrieb(self):
         self.assertEqual(zeit.berechne_betriebsminuten(time(5, 0), time(14, 0), [Pause(time(12, 0), 45)]), 435)
+
+    def test_kurze_pause_wird_nicht_abgezogen(self):
+        pausen = [Pause(time(12, 0), 10)]
+        self.assertEqual(zeit.berechne_arbeitsminuten(time(8, 0), time(14, 5), pausen), 365)
+        self.assertEqual(zeit.berechne_betriebsminuten(time(8, 0), time(14, 5), pausen), 365)
+        self.assertEqual(zeit.laengste_zeit_ohne_pause(time(8, 0), time(14, 5), pausen), 365)
+
+    def test_jede_pause_einzeln_ab_15_min(self):
+        # Zweimal 10 min sind zusammen 20, zählen aber beide nicht
+        pausen = [Pause(time(10, 0), 10), Pause(time(12, 0), 10)]
+        self.assertEqual(zeit.berechne_arbeitsminuten(time(8, 0), time(14, 0), pausen), 360)
+        # Die kurze Pause um 10 Uhr teilt das Stück nicht, am Stück also 8:00 bis 12:00
+        pausen = [Pause(time(10, 0), 10), Pause(time(12, 0), 30)]
+        self.assertEqual(zeit.laengste_zeit_ohne_pause(time(8, 0), time(17, 0), pausen), 270)
 
     # Längstes Stück ohne Pause
     def test_laengste_zeit_ohne_pause(self):
