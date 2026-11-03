@@ -169,7 +169,7 @@ function zeichneStempeluhr(d) {
   // Gearbeitete Sekunden und Pausensekunden aus den Zeitstempeln rechnen
   let pauseSek = 0, arbeitSek = 0;
   if (st.status !== 'aus') {
-    st.pausen.forEach(p => { pauseSek += ((p.bis ? new Date(p.bis) : jetzt) - new Date(p.von)) / 1000; });
+    zaehlendePausen(st, jetzt).forEach(p => { pauseSek += p.sek; });
     arbeitSek = (jetzt - new Date(st.beginn)) / 1000 - pauseSek;
   }
   const punkt = $('stempel-punkt');
@@ -195,14 +195,23 @@ function zeichneStempeluhr(d) {
   zeigen($('stempel-warnung'), warnungen.length > 0);
 }
 
+// Wie in stempeluhr.py zählen nur Pausen ab 15 min, kürzere sind Arbeitszeit. Die laufende Pause zählt mit
+function zaehlendePausen(st, jetzt) {
+  const liste = [];
+  st.pausen.forEach(p => {
+    const sek = ((p.bis ? new Date(p.bis) : jetzt) - new Date(p.von)) / 1000;
+    if (!p.bis || sek >= 15 * 60) liste.push({ von: p.von, bis: p.bis, sek: sek });
+  });
+  return liste;
+}
+
 // Warnt schon während der Arbeit, bevor beim Ausstempeln eine Verletzung entsteht.
 // Die Grenzen sind dieselben wie in logik/arbzg.py, bei einer Änderung beide Stellen anpassen.
 function stempelWarnungen(st, jetzt) {
   const warnungen = [];
-  // Wie in stempeluhr.py zählen nur Pausen ab 15 min, kürzere sind Arbeitszeit. Die laufende Pause zählt mit
-  const dauerMin = (p) => ((p.bis ? new Date(p.bis) : jetzt) - new Date(p.von)) / 60000;
-  const zaehlende = st.pausen.filter(p => !p.bis || dauerMin(p) >= 15);
-  const pause = zaehlende.reduce((summe, p) => summe + dauerMin(p), 0);
+  const zaehlende = zaehlendePausen(st, jetzt);
+  let pause = 0;
+  zaehlende.forEach(p => { pause += p.sek / 60; });
   const arbeit = (jetzt - new Date(st.beginn)) / 60000 - pause;
   if (arbeit > 600) warnungen.push({ rot: true, text: '§ 3 ArbZG: Über 10 Stunden gearbeitet. Bitte jetzt ausstempeln.' });
   else if (arbeit > 480) warnungen.push({ rot: false, text: '§ 3 ArbZG: Über 8 Stunden gearbeitet, erlaubt sind höchstens 10.' });

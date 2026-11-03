@@ -3,8 +3,8 @@ from datetime import date, timedelta
 
 from logik.modelle import Zeiteintrag, Abwesenheit
 from logik.speicher import finde_abwesenheit
-from logik.zeit import (berechne_arbeitsminuten, minuten_als_text, liegt_ausserhalb_betriebszeit,
-                        zeit_in_minuten, ende_in_minuten, ist_nachtschicht, laengste_zeit_ohne_pause)
+from logik.zeit import (PAUSE_ABSCHNITT_MIN, zaehlende_pause, berechne_arbeitsminuten, minuten_als_text,
+                        liegt_ausserhalb_betriebszeit, zeit_in_minuten, ende_in_minuten, ist_nachtschicht, laengste_zeit_ohne_pause)
 
 
 # Feiertage 
@@ -125,14 +125,10 @@ def pruefe_sechs_monate_durchschnitt(eintraege: list[Zeiteintrag], abwesenheiten
 
 # § 4 Ruhepausen 
 
-# Kürzere Unterbrechungen sind nach § 4 Satz 2 keine Ruhepause
-PAUSE_ABSCHNITT_MIN = 15
-
-
-def pause_text(pause: int) -> str:
+def hinweis_kurze_pause(pause: int) -> str:
     """Zusatz zur Meldung, wenn eine Pause nur wegen der 15 Minuten nicht zählt."""
     if 0 < pause < PAUSE_ABSCHNITT_MIN:
-        return " Pausen unter 15 min zählen nicht."
+        return " Pausen unter " + str(PAUSE_ABSCHNITT_MIN) + " min zählen nicht."
     return ""
 
 
@@ -141,9 +137,7 @@ def pruefe_pause(eintrag: Zeiteintrag) -> list[dict]:
     Eine Pause unter 15 min zählt nicht als Ruhepause."""
     arbeit = arbeitsminuten(eintrag)
     pause = eintrag.pause_minuten
-    zaehlt = pause
-    if pause < PAUSE_ABSCHNITT_MIN:
-        zaehlt = 0
+    zaehlt = zaehlende_pause(pause)
 
     # Pflichtpause je nach Arbeitsdauer bestimmen
     pflicht_pause = 0
@@ -152,7 +146,7 @@ def pruefe_pause(eintrag: Zeiteintrag) -> list[dict]:
     elif arbeit > 6 * 60:
         pflicht_pause = 30
     if zaehlt < pflicht_pause:
-        text = "Pause zu kurz: " + str(pause) + " min statt " + str(pflicht_pause) + " min." + pause_text(pause)
+        text = "Pause zu kurz: " + str(pause) + " min statt " + str(pflicht_pause) + " min." + hinweis_kurze_pause(pause)
         return [melde("Verletzung", "§ 4 ArbZG", text)]
 
     # Kurz vor der Grenze nur warnen
@@ -163,7 +157,7 @@ def pruefe_pause(eintrag: Zeiteintrag) -> list[dict]:
         bald_pflicht = 30
     if zaehlt < bald_pflicht:
         text = ("Bald sind " + str(bald_pflicht) + " min Pause nötig, bisher nur " + str(pause) + " min."
-                + pause_text(pause))
+                + hinweis_kurze_pause(pause))
         return [melde("Warnung", "§ 4 ArbZG", text)]
     return []
 

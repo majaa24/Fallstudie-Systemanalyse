@@ -1,8 +1,8 @@
 """Stempeluhr: Einstempeln, Pause, Ausstempeln. Zeiten stehen als Text "2026-09-15T08:00:00" im Zustand."""
 from datetime import datetime, time, timedelta
 
-from logik.arbzg import PAUSE_ABSCHNITT_MIN
 from logik.modelle import Zeiteintrag
+from logik.zeit import PAUSE_ABSCHNITT_MIN
 
 ZEITFORMAT = "%Y-%m-%dT%H:%M:%S"
 
@@ -50,14 +50,17 @@ def pause_beenden(zustand: dict, jetzt: datetime):
     zustand["status"] = "arbeitet"
 
 
+def pause_dauer(pause: dict) -> timedelta:
+    """Wie lange eine beendete Pause gedauert hat."""
+    return text_zu_zeitpunkt(pause["bis"]) - text_zu_zeitpunkt(pause["von"])
+
+
 def zaehlende_pausen(zustand: dict) -> list[dict]:
     """Beendete Pausen ab 15 Minuten. Kürzere sind keine Ruhepause und zählen als Arbeitszeit."""
     pausen = []
     for pause in zustand["pausen"]:
-        if pause["bis"] is not None:
-            dauer = text_zu_zeitpunkt(pause["bis"]) - text_zu_zeitpunkt(pause["von"])
-            if dauer >= timedelta(minutes=PAUSE_ABSCHNITT_MIN):
-                pausen.append(pause)
+        if pause["bis"] is not None and pause_dauer(pause) >= timedelta(minutes=PAUSE_ABSCHNITT_MIN):
+            pausen.append(pause)
     return pausen
 
 
@@ -65,8 +68,7 @@ def pausen_minuten(zustand: dict) -> int:
     """Summe der zählenden Pausen in Minuten (gerundet)."""
     sekunden = 0
     for pause in zaehlende_pausen(zustand):
-        dauer = text_zu_zeitpunkt(pause["bis"]) - text_zu_zeitpunkt(pause["von"])
-        sekunden = sekunden + dauer.total_seconds()
+        sekunden = sekunden + pause_dauer(pause).total_seconds()
     return round(sekunden / 60)
 
 
@@ -116,6 +118,6 @@ def ausstempeln(zustand: dict, jetzt: datetime):
                + beginn.strftime("%H:%M") + " bis " + ende.strftime("%H:%M") + ", "
                + str(eintrag.pause_minuten) + " min Pause.")
     if kurze_pausen > 0:
-        hinweis = hinweis + " Pausen unter 15 min zählen als Arbeitszeit."
+        hinweis = hinweis + " Pausen unter " + str(PAUSE_ABSCHNITT_MIN) + " min zählen als Arbeitszeit."
     zuruecksetzen(zustand)
     return eintrag, hinweis

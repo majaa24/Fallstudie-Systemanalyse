@@ -59,6 +59,11 @@ class TestZeit(unittest.TestCase):
         self.assertEqual(zeit.berechne_betriebsminuten(time(5, 0), time(14, 0), 45, time(12, 0)), 435)
 
     # Längstes Stück ohne Pause
+    def test_kurze_pause_wird_nicht_abgezogen(self):
+        self.assertEqual(zeit.berechne_arbeitsminuten(time(8, 0), time(14, 5), 10), 365)
+        self.assertEqual(zeit.berechne_betriebsminuten(time(8, 0), time(14, 5), 10, time(12, 0)), 365)
+        self.assertEqual(zeit.laengste_zeit_ohne_pause(time(8, 0), time(14, 5), 10, time(12, 0)), 365)
+
     def test_laengste_zeit_ohne_pause(self):
         self.assertEqual(zeit.laengste_zeit_ohne_pause(time(8, 0), time(17, 0), 30, time(12, 0)), 270)
         self.assertEqual(zeit.laengste_zeit_ohne_pause(time(8, 0), time(17, 0), 30, time(15, 0)), 420)
