@@ -13,18 +13,21 @@ class TestDemoLaden(unittest.TestCase):
     """Demodaten werden um ganze Wochen verschoben und reichen bis gestern."""
 
     def setUp(self):
+        """Jeder Test bekommt einen eigenen leeren Datenordner."""
         self.ordner = tempfile.mkdtemp()
 
     def tearDown(self):
+        """Räumt den Datenordner wieder weg."""
         shutil.rmtree(self.ordner)
 
     def test_wochen_verschiebung(self):
-        # Letzter Demotag Fr 25.9.2026, heute Do 29.10.2026 -> 5 Wochen, letzter Tag Fr 30.10.
+        """Letzter Demotag Fr 25.9.2026, heute Do 29.10.2026 -> 5 Wochen, letzter Tag Fr 30.10."""
         self.assertEqual(demo_laden.wochen_verschiebung(date(2026, 9, 25), date(2026, 10, 29)), timedelta(weeks=5))
         # Liegt der letzte Tag schon auf gestern, bleibt alles, wie es ist
         self.assertEqual(demo_laden.wochen_verschiebung(date(2026, 9, 25), date(2026, 9, 26)), timedelta(0))
 
     def test_wochentage_bleiben_und_nichts_ab_heute(self):
+        """Nach dem Laden passen die Wochentage und kein Eintrag liegt ab heute."""
         heute = date(2026, 10, 29)
         original = speicher.lade_eintraege(demo_laden.QUELLE)
         demo_laden.demo_laden(heute, self.ordner)
@@ -34,13 +37,14 @@ class TestDemoLaden(unittest.TestCase):
         self.assertEqual(eintraege[-1].datum, date(2026, 10, 28))
 
     def test_abwesenheiten_wandern_mit(self):
+        """Der Urlaub wird um dieselben Wochen verschoben wie die Einträge."""
         demo_laden.demo_laden(date(2026, 10, 29), self.ordner)
         abwesenheiten = speicher.lade_abwesenheiten(self.ordner)
         # Urlaub 14.-18.9. liegt 5 Wochen später auf 19.-23.10.
         self.assertIsNotNone(speicher.finde_abwesenheit(abwesenheiten, date(2026, 10, 21)))
 
     def test_nur_der_absichtlich_vergessene_tag(self):
-        # In den Demodaten fehlt mit Absicht genau ein Arbeitstag (Fr 11.9.), egal an welchem Tag man lädt
+        """In den Demodaten fehlt mit Absicht genau ein Arbeitstag (Fr 11.9.), egal an welchem Tag man lädt."""
         for tage in range(14):
             heute = date(2026, 10, 29) + timedelta(days=tage)
             demo_laden.demo_laden(heute, self.ordner)
@@ -53,6 +57,7 @@ class TestDemoLaden(unittest.TestCase):
             self.assertEqual(fehlend, -480, heute)
 
     def test_passwort_bleibt_stempeluhr_weg(self):
+        """Das Passwort bleibt erhalten, eine laufende Stempeluhr wird entfernt."""
         einstellungen = speicher.lade_einstellungen(self.ordner)
         einstellungen.passwort_hash = "abc"
         speicher.speichere_einstellungen(einstellungen, self.ordner)
@@ -62,7 +67,7 @@ class TestDemoLaden(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.join(self.ordner, speicher.DATEI_STEMPELUHR)))
 
     def test_hinweis_bei_feiertag(self):
-        # Heute Sa 2.1.2027: der letzte Demotag (ein Freitag) landet auf Neujahr
+        """Heute Sa 2.1.2027: der letzte Demotag (ein Freitag) landet auf Neujahr."""
         hinweise = demo_laden.demo_laden(date(2027, 1, 2), self.ordner)
         self.assertEqual(len(hinweise), 1)
         self.assertIn("Neujahr", hinweise[0])

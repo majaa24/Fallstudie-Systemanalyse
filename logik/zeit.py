@@ -10,6 +10,10 @@ MINUTEN_JE_TAG = 24 * 60
 # Kürzere Unterbrechungen sind nach § 4 Satz 2 ArbZG keine Ruhepause
 PAUSE_ABSCHNITT_MIN = 15
 
+# Nachtzeit nach § 2 Abs. 3 ArbZG: 23 bis 6 Uhr
+NACHT_BEGINN_MIN = 23 * 60
+NACHT_ENDE_MIN = 6 * 60
+
 
 def zeit_in_minuten(zeit: time) -> int:
     """Rechnet eine Uhrzeit in Minuten seit Mitternacht um."""
@@ -106,6 +110,27 @@ def berechne_betriebsminuten(beginn: time, ende: time, pausen: list) -> int:
     if ergebnis < 0:
         ergebnis = 0
     return ergebnis
+
+
+# Nachtzeit (23 bis 6 Uhr)
+
+def minuten_in_nachtzeit(von: int, bis: int) -> int:
+    """Minuten einer Zeitspanne, die in die Nachtzeit fallen: früh am Starttag, in der Nacht danach
+    und ab 23 Uhr am Folgetag."""
+    frueh = ueberschneidung(von, bis, 0, NACHT_ENDE_MIN)
+    nacht = ueberschneidung(von, bis, NACHT_BEGINN_MIN, MINUTEN_JE_TAG + NACHT_ENDE_MIN)
+    folgenacht = ueberschneidung(von, bis, NACHT_BEGINN_MIN + MINUTEN_JE_TAG, 2 * MINUTEN_JE_TAG)
+    return frueh + nacht + folgenacht
+
+
+def berechne_nachtminuten(beginn: time, ende: time, pausen: list) -> int:
+    """Arbeitsminuten in der Nachtzeit. Zählende Pausen in der Nacht werden abgezogen."""
+    nacht = minuten_in_nachtzeit(zeit_in_minuten(beginn), ende_in_minuten(beginn, ende))
+    for von, bis in pausen_spannen(beginn, zaehlende_pausen(pausen)):
+        nacht = nacht - minuten_in_nachtzeit(von, bis)
+    if nacht < 0:
+        nacht = 0
+    return nacht
 
 
 def liegt_ausserhalb_betriebszeit(beginn: time, ende: time) -> bool:
