@@ -273,39 +273,96 @@ def pruefe_sonntag_feiertag(eintrag: Zeiteintrag) -> list[dict]:
 
 # § 11 Ausgleich für Sonn- und Feiertagsbeschäftigung
 
-def ist_freier_werktag(datum: date, eintraege: list[Zeiteintrag], heute: date) -> bool:
-    """Vergangener Werktag (Montag bis Samstag, kein Feiertag) ohne Arbeit. Tage ab heute sind noch offen."""
-    if datum >= heute or datum.weekday() == 6 or feiertag_name(datum) != "":
-        return False
-    return finde_eintrag(eintraege, datum) is None
+def tage_mit_arbeit(eintrag: Zeiteintrag) -> list[date]:
+    """Tage, an denen der Eintrag Arbeit enthält: der Starttag und bei einer Nachtschicht auch der Folgetag."""
+    tage = [eintrag.datum]
+    if ist_nachtschicht(eintrag.beginn, eintrag.ende) and zeit_in_minuten(eintrag.ende) > 0:
+        tage.append(eintrag.datum + timedelta(days=1))
+    return tage
 
 
-def pruefe_ersatzruhetag_fuer(ruhetag: date, eintraege: list[Zeiteintrag], heute: date) -> list[dict]:
-    """§ 11 Abs. 3 ArbZG: Für Arbeit an einem Sonntag braucht es einen freien Werktag innerhalb von 2 Wochen,
-    für Arbeit an einem Feiertag unter der Woche innerhalb von 8 Wochen. Der Zeitraum schließt den
-    Ruhetag ein, der freie Tag darf also davor oder danach liegen."""
+def gearbeitete_tage(eintraege: list[Zeiteintrag]) -> set:
+    """Alle Tage, an denen gearbeitet wurde, auch nur nach Mitternacht in einer Nachtschicht."""
+    tage = set()
+    for eintrag in eintraege:
+        for tag in tage_mit_arbeit(eintrag):
+            tage.add(tag)
+    return tage
+
+
+def ist_ruhetag(datum: date) -> bool:
+    """Sonntag oder gesetzlicher Feiertag."""
+    return datum.weekday() == 6 or feiertag_name(datum) != ""
+
+
+def frist_ersatzruhetag(ruhetag: date) -> int:
+    """§ 11 Abs. 3 ArbZG: 2 Wochen nach Arbeit am Sonntag, 8 Wochen nach Arbeit an einem Feiertag unter der Woche."""
     if ruhetag.weekday() == 6:
-        frist_tage = 14
-        anlass = "Sonntag"
-    elif feiertag_name(ruhetag) != "":
-        frist_tage = 56
+        return 14
+    return 56
+
+
+def ist_freier_werktag(datum: date, gearbeitet: set, erfassung_ab: date, heute: date) -> bool:
+    """Vergangener Werktag (Montag bis Samstag, kein Feiertag) seit Beginn der Erfassung, an dem gar nicht
+    gearbeitet wurde, auch nicht nach Mitternacht. Tage vor der Erfassung sind unbekannt, Tage ab heute noch offen."""
+    if datum < erfassung_ab or datum >= heute or ist_ruhetag(datum):
+        return False
+    return datum not in gearbeitet
+
+
+def ersatzruhetage_zuordnen(eintraege: list[Zeiteintrag], erfassung_ab: date, heute: date) -> dict:
+    """§ 11 Abs. 3 ArbZG: Jeder gearbeitete Sonn- oder Feiertag braucht einen eigenen freien Werktag, ein freier
+    Tag zählt also nur einmal. Der Zeitraum schließt den Ruhetag ein, der freie Tag darf davor oder danach liegen.
+    Der Ruhetag mit der frühesten Frist bekommt zuerst den frühesten noch freien Tag.
+    Gibt {Ruhetag: freier Tag} zurück, None, wenn es (noch) keinen gibt."""
+    gearbeitet = gearbeitete_tage(eintraege)
+    nach_frist = []
+    for tag in gearbeitet:
+        if ist_ruhetag(tag):
+            nach_frist.append((tag + timedelta(days=frist_ersatzruhetag(tag) - 1), tag))
+    nach_frist.sort()
+
+    benutzt = set()
+    zuordnung = {}
+    for letzter, ruhetag in nach_frist:
+        zuordnung[ruhetag] = None
+        datum = ruhetag - timedelta(days=frist_ersatzruhetag(ruhetag) - 1)
+        while datum <= letzter:
+            if datum not in benutzt and ist_freier_werktag(datum, gearbeitet, erfassung_ab, heute):
+                zuordnung[ruhetag] = datum
+                benutzt.add(datum)
+                break
+            datum = datum + timedelta(days=1)
+    return zuordnung
+
+
+def pruefe_ersatzruhetag(eintrag: Zeiteintrag, eintraege: list[Zeiteintrag], erfassung_ab: date,
+                         heute: date) -> list[dict]:
+    """§ 11 ArbZG für einen Eintrag: Ersatzruhetag für jeden Sonn- oder Feiertag, an dem er Arbeit enthält
+    (auch nach Mitternacht), und 15 freie Sonntage im Jahr."""
+    meldungen = []
+    zuordnung = None
+    for ruhetag in tage_mit_arbeit(eintrag):
+        if not ist_ruhetag(ruhetag):
+            continue
+        if zuordnung is None:
+            zuordnung = ersatzruhetage_zuordnen(eintraege, erfassung_ab, heute)
+        if zuordnung[ruhetag] is not None:
+            continue
+        frist = frist_ersatzruhetag(ruhetag)
         anlass = "Feiertag"
-    else:
-        return []
-
-    datum = ruhetag - timedelta(days=frist_tage - 1)
-    letzter = ruhetag + timedelta(days=frist_tage - 1)
-    while datum <= letzter:
-        if ist_freier_werktag(datum, eintraege, heute):
-            return []
-        datum = datum + timedelta(days=1)
-
-    # Liegt das Ende der Frist noch vor uns, kann der freie Tag noch kommen
-    if letzter >= heute:
-        return [melde("Warnung", "§ 11 ArbZG", "Für die Arbeit am " + anlass + " ist ein Ersatzruhetag nötig. Bis "
-                      + letzter.strftime("%d.%m.%Y") + " einen Werktag frei nehmen.")]
-    return [melde("Verletzung", "§ 11 ArbZG", "Für die Arbeit am " + anlass + " gab es innerhalb von "
-                  + str(frist_tage // 7) + " Wochen keinen Ersatzruhetag.")]
+        if ruhetag.weekday() == 6:
+            anlass = "Sonntag"
+        letzter = ruhetag + timedelta(days=frist - 1)
+        # Liegt das Ende der Frist noch vor uns, kann der freie Tag noch kommen
+        if letzter >= heute:
+            meldungen.append(melde("Warnung", "§ 11 ArbZG", "Für die Arbeit am " + anlass + " ist ein Ersatzruhetag nötig. Bis "
+                                   + letzter.strftime("%d.%m.%Y") + " einen Werktag frei nehmen."))
+        else:
+            meldungen.append(melde("Verletzung", "§ 11 ArbZG", "Für die Arbeit am " + anlass + " gab es innerhalb von "
+                                   + str(frist // 7) + " Wochen keinen Ersatzruhetag."))
+    meldungen.extend(pruefe_freie_sonntage(eintrag, eintraege))
+    return meldungen
 
 
 def sonntage_im_jahr(jahr: int) -> int:
@@ -320,29 +377,24 @@ def sonntage_im_jahr(jahr: int) -> int:
 
 
 def pruefe_freie_sonntage(eintrag: Zeiteintrag, eintraege: list[Zeiteintrag]) -> list[dict]:
-    """§ 11 Abs. 1 ArbZG: Mindestens 15 Sonntage im Jahr müssen frei bleiben."""
-    if eintrag.datum.weekday() != 6:
+    """§ 11 Abs. 1 ArbZG: Mindestens 15 Sonntage im Jahr müssen frei bleiben. Ein Sonntag zählt als gearbeitet,
+    auch wenn nur der Teil einer Nachtschicht nach Mitternacht darauf fällt (wie bei § 9)."""
+    sonntag = None
+    for tag in tage_mit_arbeit(eintrag):
+        if tag.weekday() == 6:
+            sonntag = tag
+    if sonntag is None:
         return []
-    jahr = eintrag.datum.year
+    jahr = sonntag.year
     gearbeitet = 0
-    for anderer in eintraege:
-        if anderer.datum.year == jahr and anderer.datum.weekday() == 6:
+    for tag in gearbeitete_tage(eintraege):
+        if tag.year == jahr and tag.weekday() == 6:
             gearbeitet = gearbeitet + 1
     frei = sonntage_im_jahr(jahr) - gearbeitet
     if frei < 15:
         return [melde("Verletzung", "§ 11 ArbZG", "Im Jahr " + str(jahr) + " bleiben nur " + str(frei)
                       + " Sonntage frei, mindestens 15 müssen es sein.")]
     return []
-
-
-def pruefe_ersatzruhetag(eintrag: Zeiteintrag, eintraege: list[Zeiteintrag], heute: date) -> list[dict]:
-    """§ 11 ArbZG für einen Eintrag: Ersatzruhetag, auch für den Teil einer Nachtschicht nach Mitternacht,
-    und 15 freie Sonntage im Jahr."""
-    meldungen = pruefe_ersatzruhetag_fuer(eintrag.datum, eintraege, heute)
-    if ist_nachtschicht(eintrag.beginn, eintrag.ende) and zeit_in_minuten(eintrag.ende) > 0:
-        meldungen.extend(pruefe_ersatzruhetag_fuer(eintrag.datum + timedelta(days=1), eintraege, heute))
-    meldungen.extend(pruefe_freie_sonntage(eintrag, eintraege))
-    return meldungen
 
 
 # Betriebliche Arbeitszeit 
@@ -383,15 +435,20 @@ def pruefe_mit_anderen_tagen(eintrag: Zeiteintrag, eintraege: list[Zeiteintrag],
                              erfassung_ab, heute: date) -> list[dict]:
     """Prüfungen, die mehr als den Vortag brauchen: § 6 (4 Wochen) und § 11 (Ersatzruhetag, freie Sonntage)."""
     alle = mit_eintrag(eintraege, eintrag)
+    # Die Erfassung beginnt spätestens mit dem ersten Eintrag, auch wenn der erst in der Vorschau steht
+    beginn = erfassung_ab
+    for anderer in alle:
+        if beginn is None or anderer.datum < beginn:
+            beginn = anderer.datum
     meldungen = []
-    meldungen.extend(pruefe_nachtarbeit(eintrag, alle, abwesenheiten, erfassung_ab))
-    meldungen.extend(pruefe_ersatzruhetag(eintrag, alle, heute))
+    meldungen.extend(pruefe_nachtarbeit(eintrag, alle, abwesenheiten, beginn))
+    meldungen.extend(pruefe_ersatzruhetag(eintrag, alle, beginn, heute))
     return meldungen
 
 
 def warnungen_beim_einstempeln(jetzt: datetime, eintrag_vortag) -> list[dict]:
     """Warnt schon beim Einstempeln, wenn die Ruhezeit nach § 5 noch nicht um ist oder heute ein Sonntag
-    oder Feiertag ist (§ 9). Sonst käme die Verletzung erst beim Ausstempeln."""
+    oder Feiertag ist (§ 9), ab 14 Uhr auch, wenn morgen einer ist. Sonst käme die Verletzung erst beim Ausstempeln."""
     warnungen = []
     if eintrag_vortag is not None:
         ruhe = ruhezeit_minuten(jetzt.date(), jetzt.time(), eintrag_vortag)
@@ -400,6 +457,11 @@ def warnungen_beim_einstempeln(jetzt: datetime, eintrag_vortag) -> list[dict]:
                                    + minuten_als_text(max(ruhe, 0)) + " vergangen, nötig sind 11 Stunden Ruhezeit."))
     for meldung in ruhetag_meldungen(jetzt.date(), ""):
         warnungen.append(melde("Warnung", meldung["paragraph"], meldung["text"]))
+
+    # Ab 14 Uhr kann eine Schicht mit bis zu 10 Stunden über Mitternacht gehen
+    if jetzt.hour >= 14:
+        for meldung in ruhetag_meldungen(jetzt.date() + timedelta(days=1), " (nach Mitternacht)"):
+            warnungen.append(melde("Warnung", meldung["paragraph"], meldung["text"]))
     return warnungen
 
 
