@@ -240,13 +240,13 @@ class TestArbZG(unittest.TestCase):
         """Arbeit am So 13.9., dafür ist Sa 19.9. frei."""
         sonntag = tag(date(2026, 9, 13), time(8, 0), time(12, 0), 0)
         eintraege = self.werktage_mit_arbeit(date(2026, 8, 31), date(2026, 9, 26), date(2026, 9, 19)) + [sonntag]
-        self.assertEqual(arbzg.pruefe_ersatzruhetag(sonntag, eintraege, date(2026, 10, 1)), [])
+        self.assertEqual(arbzg.pruefe_ersatzruhetag(sonntag, eintraege, date(2026, 8, 31), date(2026, 10, 1)), [])
 
     def test_p11_kein_ersatzruhetag_verletzt(self):
         """Arbeit am So 13.9. und zwei Wochen davor und danach kein freier Werktag."""
         sonntag = tag(date(2026, 9, 13), time(8, 0), time(12, 0), 0)
         eintraege = self.werktage_mit_arbeit(date(2026, 8, 31), date(2026, 9, 26)) + [sonntag]
-        meldungen = arbzg.pruefe_ersatzruhetag(sonntag, eintraege, date(2026, 10, 1))
+        meldungen = arbzg.pruefe_ersatzruhetag(sonntag, eintraege, date(2026, 8, 31), date(2026, 10, 1))
         self.assertEqual(meldungen[0]["art"], "Verletzung")
         self.assertEqual(meldungen[0]["text"], "Für die Arbeit am Sonntag gab es innerhalb von 2 Wochen keinen Ersatzruhetag.")
 
@@ -254,7 +254,7 @@ class TestArbZG(unittest.TestCase):
         """Am 15.9. ist die Frist noch offen: Warnung mit dem letzten möglichen Tag."""
         sonntag = tag(date(2026, 9, 13), time(8, 0), time(12, 0), 0)
         eintraege = self.werktage_mit_arbeit(date(2026, 8, 31), date(2026, 9, 14)) + [sonntag]
-        meldungen = arbzg.pruefe_ersatzruhetag(sonntag, eintraege, date(2026, 9, 15))
+        meldungen = arbzg.pruefe_ersatzruhetag(sonntag, eintraege, date(2026, 8, 31), date(2026, 9, 15))
         self.assertEqual(meldungen[0]["art"], "Warnung")
         self.assertIn("Bis 26.09.2026 einen Werktag frei nehmen.", meldungen[0]["text"])
 
@@ -262,7 +262,7 @@ class TestArbZG(unittest.TestCase):
         """Arbeit am Sa 3.10. (Feiertag): ohne freien Werktag in 8 Wochen ist das eine Verletzung."""
         feiertag = tag(date(2026, 10, 3), time(8, 0), time(12, 0), 0)
         eintraege = self.werktage_mit_arbeit(date(2026, 8, 1), date(2026, 12, 1)) + [feiertag]
-        meldungen = arbzg.pruefe_ersatzruhetag(feiertag, eintraege, date(2026, 12, 15))
+        meldungen = arbzg.pruefe_ersatzruhetag(feiertag, eintraege, date(2026, 8, 1), date(2026, 12, 15))
         self.assertIn("innerhalb von 8 Wochen", meldungen[0]["text"])
 
     def test_p11_15_sonntage_frei(self):
@@ -274,6 +274,38 @@ class TestArbZG(unittest.TestCase):
             datum = datum + timedelta(days=7)
         self.assertEqual(arbzg.pruefe_freie_sonntage(sonntage[36], sonntage[:37]), [])
         meldungen = arbzg.pruefe_freie_sonntage(sonntage[37], sonntage)
+        self.assertEqual(meldungen[0]["text"], "Im Jahr 2026 bleiben nur 14 Sonntage frei, mindestens 15 müssen es sein.")
+
+    def test_p11_freier_tag_zaehlt_nur_einmal(self):
+        """Arbeit an den Sonntagen 7.6. und 14.6., frei nur Sa 13.6.: der zweite Sonntag hat keinen Ersatzruhetag."""
+        erster = tag(date(2026, 6, 7), time(8, 0), time(12, 0), 0)
+        zweiter = tag(date(2026, 6, 14), time(8, 0), time(12, 0), 0)
+        eintraege = self.werktage_mit_arbeit(date(2026, 5, 25), date(2026, 6, 27), date(2026, 6, 13)) + [erster, zweiter]
+        self.assertEqual(arbzg.pruefe_ersatzruhetag(erster, eintraege, date(2026, 5, 25), date(2026, 7, 1)), [])
+        meldungen = arbzg.pruefe_ersatzruhetag(zweiter, eintraege, date(2026, 5, 25), date(2026, 7, 1))
+        self.assertEqual(meldungen[0]["art"], "Verletzung")
+
+    def test_p11_tag_nach_nachtschicht_ist_nicht_frei(self):
+        """Nachtschicht So 13.9. 22 Uhr bis Mo 6 Uhr: der Montag hat keinen eigenen Eintrag, ist aber nicht frei."""
+        sonntag = tag(date(2026, 9, 13), time(22, 0), time(6, 0), 30, time(2, 0))
+        eintraege = self.werktage_mit_arbeit(date(2026, 8, 31), date(2026, 9, 26), date(2026, 9, 14)) + [sonntag]
+        meldungen = arbzg.pruefe_ersatzruhetag(sonntag, eintraege, date(2026, 8, 31), date(2026, 10, 1))
+        self.assertEqual(meldungen[0]["art"], "Verletzung")
+
+    def test_p11_tage_vor_der_erfassung_sind_nicht_frei(self):
+        """Erster Eintrag ist ein Sonntag: die Tage davor sind unbekannt und zählen nicht als Ersatzruhetag."""
+        sonntag = tag(date(2026, 9, 13), time(8, 0), time(12, 0), 0)
+        meldungen = arbzg.pruefe_ersatzruhetag(sonntag, [sonntag], date(2026, 9, 13), date(2026, 9, 14))
+        self.assertEqual(meldungen[0]["art"], "Warnung")
+
+    def test_p11_nachtschicht_in_den_sonntag_zaehlt(self):
+        """38 Nachtschichten von Samstag auf Sonntag: der Teil nach Mitternacht zählt als Arbeit am Sonntag."""
+        nachtschichten = []
+        datum = date(2026, 1, 3)
+        while len(nachtschichten) < 38:
+            nachtschichten.append(tag(datum, time(22, 0), time(4, 0), 0))
+            datum = datum + timedelta(days=7)
+        meldungen = arbzg.pruefe_freie_sonntage(nachtschichten[37], nachtschichten)
         self.assertEqual(meldungen[0]["text"], "Im Jahr 2026 bleiben nur 14 Sonntage frei, mindestens 15 müssen es sein.")
 
     # Warnung beim Einstempeln
@@ -289,6 +321,12 @@ class TestArbZG(unittest.TestCase):
         warnungen = arbzg.warnungen_beim_einstempeln(datetime(2026, 9, 13, 9, 0), None)
         self.assertEqual(warnungen[0]["paragraph"], "§ 9 ArbZG")
         self.assertEqual(warnungen[0]["art"], "Warnung")
+
+    def test_einstempeln_am_nachmittag_vor_sonntag(self):
+        """Samstag 15 Uhr einstempeln: die Schicht kann in den Sonntag laufen, morgens am Samstag nicht."""
+        warnungen = arbzg.warnungen_beim_einstempeln(datetime(2026, 9, 12, 15, 0), None)
+        self.assertEqual(warnungen[0]["text"], "Arbeit an einem Sonntag (nach Mitternacht) ist nicht zulässig.")
+        self.assertEqual(arbzg.warnungen_beim_einstempeln(datetime(2026, 9, 12, 9, 0), None), [])
 
     def test_einstempeln_ohne_warnung(self):
         """Normaler Arbeitstag nach normalem Vortag: keine Warnung."""
