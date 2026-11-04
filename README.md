@@ -96,8 +96,9 @@ python app.py
 ```
 
 Danach http://localhost:5000 öffnen. Unter Windows reicht auch ein Doppelklick auf `start.bat`: Das Skript
-installiert die Pakete, startet Wendezeit und öffnet nach zwei Sekunden den Browser. Das Fenster muss offen
-bleiben, solange Wendezeit läuft.
+legt beim ersten Start eine eigene Python-Umgebung im Ordner `.venv` an, installiert dort die Pakete,
+startet Wendezeit und öffnet nach zwei Sekunden den Browser. Das Fenster muss offen bleiben, solange
+Wendezeit läuft.
 
 Die Daten liegen dann im Ordner `daten/`, Beispieldaten kommen mit `python demo_laden.py` hinein.
 
