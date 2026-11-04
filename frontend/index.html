@@ -131,7 +131,7 @@
       </header>
 
       <!-- Filter (immer sichtbar): Zeitraum, Stundenkonto im Zeitraum und in der Tabelle der Status -->
-      <div id="filter-panel" class="karte filter-panel">
+      <div class="karte filter-panel">
         <div class="filter-felder">
         <div class="filter-feld">
           <span class="filter-feld-titel">Zeitraum</span>
@@ -207,9 +207,9 @@
     <section id="seite-gesetz" class="seite" hidden>
       <header><h1>Arbeitszeitgesetz</h1></header>
 
-      <article id="gesetz-p2" class="karte gesetz-abschnitt">
+      <article class="karte gesetz-abschnitt">
         <h2>§ 2 Begriffsbestimmungen</h2>
-        <blockquote class="gesetz-text"><p>(1) Arbeitszeit im Sinne dieses Gesetzes ist die Zeit vom Beginn bis zum Ende der Arbeit ohne die Ruhepausen; Arbeitszeiten bei mehreren Arbeitgebern sind zusammenzurechnen.</p></blockquote>
+        <blockquote class="gesetz-text"><p>(1) Arbeitszeit im Sinne dieses Gesetzes ist die Zeit vom Beginn bis zum Ende der Arbeit ohne die Ruhepausen; Arbeitszeiten bei mehreren Arbeitgebern sind zusammenzurechnen.</p><p>(3) Nachtzeit im Sinne dieses Gesetzes ist die Zeit von 23 bis 6 Uhr, in Bäckereien und Konditoreien die Zeit von 22 bis 5 Uhr.</p><p>(4) Nachtarbeit im Sinne dieses Gesetzes ist jede Arbeit, die mehr als zwei Stunden der Nachtzeit umfaßt.</p></blockquote>
       </article>
 
       <article id="gesetz-p3" class="karte gesetz-abschnitt">
@@ -239,6 +239,17 @@
         <ul class="gesetz-regeln">
           <li><span class="pille rot">Verletzung</span><span>weniger als 11 Stunden zwischen dem Ende der Arbeit am Vortag und dem Beginn heute</span></li>
           <li><span class="pille orange">Warnung</span><span>für den Vortag fehlt ein Eintrag, die Ruhezeit ist nicht prüfbar</span></li>
+          <li><span class="pille orange">Warnung</span><span>beim Einstempeln, wenn seit dem Ende am Vortag noch keine 11 Stunden vergangen sind</span></li>
+        </ul>
+      </article>
+
+      <article id="gesetz-p6" class="karte gesetz-abschnitt">
+        <h2>§ 6 Nacht- und Schichtarbeit</h2>
+        <blockquote class="gesetz-text"><p>(2) Die werktägliche Arbeitszeit der Nachtarbeitnehmer darf acht Stunden nicht überschreiten. Sie kann auf bis zu zehn Stunden nur verlängert werden, wenn abweichend von § 3 innerhalb von einem Kalendermonat oder innerhalb von vier Wochen im Durchschnitt acht Stunden werktäglich nicht überschritten werden.</p></blockquote>
+        <ul class="gesetz-regeln">
+          <li><span class="pille orange">Warnung</span><span>mehr als 8 Stunden an einem Tag mit Nachtarbeit (mehr als 2 Stunden zwischen 23 und 6 Uhr)</span></li>
+          <li><span class="pille orange">Warnung</span><span>im Durchschnitt mehr als 8 Stunden je Werktag, solange noch keine 4 Wochen erfasst sind</span></li>
+          <li><span class="pille rot">Verletzung</span><span>an einem Tag mit Nachtarbeit im Durchschnitt der letzten 4 Wochen mehr als 8 Stunden je Werktag</span></li>
         </ul>
       </article>
 
@@ -247,6 +258,17 @@
         <blockquote class="gesetz-text"><p>(1) Arbeitnehmer dürfen an Sonn- und gesetzlichen Feiertagen von 0 bis 24 Uhr nicht beschäftigt werden.</p></blockquote>
         <ul class="gesetz-regeln">
           <li><span class="pille rot">Verletzung</span><span>Arbeit an einem Sonntag oder an einem gesetzlichen Feiertag in Baden-Württemberg, auch nach Mitternacht in einer Nachtschicht</span></li>
+          <li><span class="pille orange">Warnung</span><span>beim Einstempeln an einem Sonntag oder Feiertag</span></li>
+        </ul>
+      </article>
+
+      <article id="gesetz-p11" class="karte gesetz-abschnitt">
+        <h2>§ 11 Ausgleich für Sonn- und Feiertagsbeschäftigung</h2>
+        <blockquote class="gesetz-text"><p>(1) Mindestens 15 Sonntage im Jahr müssen beschäftigungsfrei bleiben.</p><p>(3) Werden Arbeitnehmer an einem Sonntag beschäftigt, müssen sie einen Ersatzruhetag haben, der innerhalb eines den Beschäftigungstag einschließenden Zeitraums von zwei Wochen zu gewähren ist. Werden Arbeitnehmer an einem auf einen Werktag fallenden Feiertag beschäftigt, müssen sie einen Ersatzruhetag haben, der innerhalb eines den Beschäftigungstag einschließenden Zeitraums von acht Wochen zu gewähren ist.</p></blockquote>
+        <ul class="gesetz-regeln">
+          <li><span class="pille orange">Warnung</span><span>nach Arbeit an einem Sonntag oder Feiertag gab es noch keinen freien Werktag, die Frist läuft aber noch</span></li>
+          <li><span class="pille rot">Verletzung</span><span>kein freier Werktag innerhalb von 2 Wochen (Sonntag) bzw. 8 Wochen (Feiertag)</span></li>
+          <li><span class="pille rot">Verletzung</span><span>im Jahr bleiben weniger als 15 Sonntage frei</span></li>
         </ul>
       </article>
 

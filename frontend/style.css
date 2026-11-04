@@ -235,7 +235,6 @@ button.meldung:hover{filter:brightness(0.96)}
 .meldung{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.45}
 .meldung.verletzung{background:#F7E3E0;color:#8A2A1F}.meldung.warnung{background:#F8EDD3;color:#6B4A0B}
 .meldung b{font-weight:600}
-.meldung-dunkel{background:#1B1F26;color:#F4F3EF;padding:12px 14px;border-radius:10px;font-size:14px}
 .abwesenheit-form{border-top:1px solid #ECEAE4;padding-top:18px;display:flex;flex-direction:column;gap:12px}
 .abwesenheit-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto;gap:12px;align-items:end}
 .volle-breite{grid-column:1 / -1}

@@ -20,7 +20,7 @@ const zustand = {
 const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 const STATUS_NAME = { gruen: 'in Ordnung', orange: 'Warnung', rot: 'Verletzung' };
 // Welche Meldung zu welchem Abschnitt auf der Seite "Arbeitszeitgesetz" führt
-const GESETZ_ANKER = { '§ 3 ArbZG': 'gesetz-p3', '§ 4 ArbZG': 'gesetz-p4', '§ 5 ArbZG': 'gesetz-p5', '§ 9 ArbZG': 'gesetz-p9', 'Betrieb': 'gesetz-betrieb' };
+const GESETZ_ANKER = { '§ 3 ArbZG': 'gesetz-p3', '§ 4 ArbZG': 'gesetz-p4', '§ 5 ArbZG': 'gesetz-p5', '§ 6 ArbZG': 'gesetz-p6', '§ 9 ArbZG': 'gesetz-p9', '§ 11 ArbZG': 'gesetz-p11', 'Betrieb': 'gesetz-betrieb' };
 // Pinnadel für den heutigen Tag im Kalender
 const HEUTE_PIN = '<svg class="heute-pin" width="26" height="30" viewBox="0 0 26 30" aria-hidden="true"><line x1="13" y1="14" x2="13" y2="28" stroke="#3A3F4B" stroke-width="2.4" stroke-linecap="round"></line><circle cx="13" cy="9" r="7.5" fill="#C6372A"></circle><circle cx="10.5" cy="6.5" r="2.2" fill="#FFFFFF" opacity="0.6"></circle></svg>';
 const AB_KLASSE = { 'Urlaub': 'urlaub', 'Krankheit': 'krankheit', 'Sonderurlaub': 'sonstige', 'Sonstige Abwesenheit': 'sonstige' };
@@ -41,22 +41,30 @@ async function api(pfad, daten) {
 
 // Hilfsfunktionen zum Formatieren
 const $ = (id) => document.getElementById(id);
+// Zahl zweistellig, z. B. 7 wird 07
 function zwei(n) { return String(n).padStart(2, '0'); }
+// Minuten als Dauer, z. B. 465 wird 7:45 h
 function dauer(min) { return Math.floor(min / 60) + ':' + zwei(min % 60) + ' h'; }
+// Saldo mit Vorzeichen, z. B. +1:30 h oder −0:45 h
 function saldoText(min) {
   const zeichen = min < 0 ? '−' : (min > 0 ? '+' : '±');
   const a = Math.abs(min);
   return zeichen + Math.floor(a / 60) + ':' + zwei(a % 60) + ' h';
 }
+// Datum von 2026-09-14 nach 14.09.2026
 function datumText(iso) { const [j, m, t] = iso.split('-'); return t + '.' + m + '.' + j; }
+// Uhrzeit eines Zeitpunkts, z. B. 08:05
 function uhrText(datum) { const d = new Date(datum); return zwei(d.getHours()) + ':' + zwei(d.getMinutes()); }
+// Sekunden als Stunden:Minuten:Sekunden für die Stempeluhr
 function hms(sek) { sek = Math.max(0, Math.floor(sek)); return zwei(Math.floor(sek / 3600)) + ':' + zwei(Math.floor(sek / 60) % 60) + ':' + zwei(sek % 60); }
 // Freier Text wie der Grund einer Abwesenheit kommt per innerHTML in die Seite. Ohne Maskieren
 // würde z. B. <img onerror=...> als HTML ausgeführt
 function maskiere(text) {
   return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
+// Zahl mit einer Nachkommastelle und deutschem Komma
 function komma(zahl) { return zahl.toFixed(1).replace('.', ','); }
+// Element ein- oder ausblenden
 function zeigen(el, sichtbar) { el.hidden = !sichtbar; }
 
 // Daten laden und alles neu zeichnen
@@ -80,6 +88,7 @@ function zeitraum() {
   return { von: j + '-' + zwei(zustand.monatNr) + '-01', bis: letzterTag(zustand.monatNr), text: MONATE[zustand.monatNr - 1] + ' ' + j };
 }
 
+// Zeichnet alle Bereiche neu, nachdem neue Daten da sind
 function zeichneAlles() {
   const d = zustand.daten;
   if (!d) return;
@@ -93,6 +102,7 @@ function zeichneAlles() {
   zeigeSeite();
 }
 
+// Blendet die gewählte Seite ein und die anderen aus
 function zeigeSeite() {
   zeigen($('seite-konto'), zustand.seite === 'konto');
   zeigen($('seite-kalender'), zustand.seite === 'kalender');
@@ -120,6 +130,7 @@ function initialen(name) {
   if (teile.length >= 2) return (teile[0][0] + teile[teile.length - 1][0]).toUpperCase();
   return name.trim().slice(0, 2).toUpperCase();
 }
+// Farbwert zur Ampelfarbe
 function ampelFarbe(farbe) { return { gruen: '#3E9B6B', orange: '#E08A2E', rot: '#C6372A' }[farbe]; }
 
 // Stundenkonto
@@ -150,6 +161,7 @@ function zeichneFilter(d) {
   $('filter-quartal').value = zustand.quartal;
 }
 
+// Füllt die Jahresauswahl im Kalender
 function jahreEintragen() {
   // Auswahl: zehn Jahre zurück bis fünf Jahre voraus
   const aktuell = new Date().getFullYear();
@@ -251,6 +263,7 @@ function zeichneKalender(d) {
   $('kalender-monate').innerHTML = monate.map(m => monatRaster(m, d, monate.length > 1)).join('');
 }
 
+// Ein Monat als Raster, die Woche beginnt am Montag
 function monatRaster(m, d, mitTitel) {
   const [jahr, mon] = m.schluessel.split('-').map(Number);
   const fuehrend = (new Date(jahr, mon - 1, 1).getDay() + 6) % 7;   // Montag = 0
@@ -263,6 +276,7 @@ function monatRaster(m, d, mitTitel) {
     + '<div class="tage">' + html.join('') + '</div></div>';
 }
 
+// Eine Kachel im Kalender mit Farbe, Stunden und Uhrzeit
 function tagKachel(t, d) {
   let klasse = '', z1 = '', z2 = '';
   if (t.eintrag) { klasse = t.status; z1 = komma(t.ist / 60) + ' h'; z2 = t.eintrag.beginn + ' bis ' + t.eintrag.ende; }
@@ -331,6 +345,7 @@ function zeichneGrenzenBalken(e) {
 // Popup für einen Tag
 function tagFinden(datum) { return zustand.daten.tage.find(t => t.datum === datum); }
 
+// Öffnet das Tagesfenster und füllt das Formular mit dem gespeicherten Eintrag
 function popupOeffnen(datum) {
   zustand.gewaehlt = datum;
   const t = tagFinden(datum);
@@ -351,11 +366,13 @@ function popupOeffnen(datum) {
   zeichneKalender(zustand.daten);
 }
 
+// Schließt das Tagesfenster
 function popupSchliessen() {
   zeigen($('popup'), false);
   zeichneKalender(zustand.daten);
 }
 
+// Zeichnet das Tagesfenster: Eintrag, Abwesenheit und Vorschau
 async function zeichnePopup() {
   const t = tagFinden(zustand.gewaehlt);
   const arbeitstag = !t.feiertag && !(t.abwesenheit && !t.eintrag);
@@ -411,6 +428,7 @@ async function zeichnePopup() {
   zeigen($('tag-meldungen'), html.length > 0);
 }
 
+// Setzt die Vorschau im Tagesfenster zurück, z. B. bei einer ungültigen Eingabe
 function vorschauLeeren(text) {
   const status = $('tag-status');
   status.className = 'status-pille'; status.textContent = text;
@@ -432,6 +450,7 @@ function pauseZeileDazu(minuten, ab) {
   $('weitere-pausen').appendChild(zeile);
 }
 
+// Liest Beginn, Ende und Pausen aus dem Formular. Gibt null zurück, wenn etwas fehlt
 function formularWerte() {
   const beginn = $('f-beginn').value, ende = $('f-ende').value;
   // Ende vor Beginn ist erlaubt: dann endet die Schicht am nächsten Tag
@@ -460,6 +479,7 @@ function meldungKnopf(m, mitArt) {
     + '<b>' + maskiere(kopf) + '</b><span>' + maskiere(m.text) + '</span><span class="meldung-link">Zum Gesetzestext ›</span></button>';
 }
 
+// Wechselt zur Seite Arbeitszeitgesetz und hebt den Abschnitt kurz hervor
 function zeigeGesetz(anker) {
   if (!$('popup').hidden) popupSchliessen();
   zeigen($('verletzung-popup'), false);
@@ -474,6 +494,7 @@ function zeigeGesetz(anker) {
   ziel.classList.add('hervorgehoben');
 }
 
+// Klick auf eine Meldung führt zum passenden Gesetzestext
 function gesetzKlick(ev) {
   const knopf = ev.target.closest('[data-anker]');
   if (knopf && knopf.dataset.anker) zeigeGesetz(knopf.dataset.anker);
@@ -488,6 +509,7 @@ function zeichneLogin() {
   zeigen($('login-fehler'), false);
 }
 
+// Nach dem Login: Seitenleiste zeigen, Zeitraum auf den aktuellen Monat setzen, Daten laden
 async function nachLogin() {
   zeigen($('login'), false);
   zeigen($('seitenleiste'), true);
@@ -500,6 +522,7 @@ async function nachLogin() {
   await laden();
 }
 
+// Beim Öffnen der Seite: angemeldet, erster Start oder Login?
 async function start() {
   const s = await api('/status');
   zustand.erststart = s.erststart;
@@ -603,7 +626,8 @@ $('eintrag-form').addEventListener('submit', async (ev) => {
   zeigeVerletzung(antwort);
 });
 $('btn-loeschen').addEventListener('click', async () => {
-  await api('/eintrag-loeschen', { datum: zustand.gewaehlt });
+  const antwort = await api('/eintrag-loeschen', { datum: zustand.gewaehlt });
+  if (!antwort.ok) { $('eintrag-fehler').textContent = antwort.fehler; zeigen($('eintrag-fehler'), true); return; }
   popupSchliessen();
   laden();
 });
@@ -619,7 +643,8 @@ $('abwesenheit-form').addEventListener('submit', async (ev) => {
 });
 $('btn-abwesenheit-entfernen').addEventListener('click', async () => {
   const t = tagFinden(zustand.gewaehlt);
-  await api('/abwesenheit-loeschen', { von: t.abwesenheit.von });
+  const antwort = await api('/abwesenheit-loeschen', { von: t.abwesenheit.von });
+  if (!antwort.ok) { $('ab-fehler').textContent = antwort.fehler; zeigen($('ab-fehler'), true); return; }
   popupSchliessen();
   laden();
 });
@@ -628,7 +653,10 @@ $('btn-abwesenheit-entfernen').addEventListener('click', async () => {
 async function stempeln(aktion) {
   const antwort = await api('/stempel', { aktion });
   zustand.stempelHinweis = antwort.hinweis || '';
-  $('stempel-hinweis').className = antwort.ok === false ? 'meldung-fehler' : 'meldung-info';
+  let klasse = 'meldung-info';
+  if (antwort.ok === false) klasse = 'meldung-fehler';
+  else if (antwort.warnung) klasse = 'meldung warnung';
+  $('stempel-hinweis').className = klasse;
   await laden();
   zeigeVerletzung(antwort);
 }

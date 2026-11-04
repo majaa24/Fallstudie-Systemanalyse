@@ -26,17 +26,9 @@ def ist_fuer_eintrag(eintrag: Zeiteintrag) -> int:
     return berechne_betriebsminuten(eintrag.beginn, eintrag.ende, pausen_von(eintrag))
 
 
-def zaehlt_fuer_gleitzeit(datum: date, abwesenheiten: list[Abwesenheit]) -> bool:
-    """An Sonntagen, Feiertagen und Abwesenheitstagen zählt Arbeit nicht für die Gleitzeit (Saldo 0)."""
-    if datum.weekday() == 6 or arbzg.feiertag_name(datum) != "":
-        return False
-    return finde_abwesenheit(abwesenheiten, datum) is None
-
-
 def saldo_fuer_eintrag(eintrag: Zeiteintrag, abwesenheiten: list[Abwesenheit], einstellungen: Einstellungen) -> int:
-    """Gleitzeit eines erfassten Tages: Ist minus Soll, an Ruhe- und Abwesenheitstagen 0."""
-    if not zaehlt_fuer_gleitzeit(eintrag.datum, abwesenheiten):
-        return 0
+    """Gleitzeit eines erfassten Tages: Ist minus Soll. An Sonn-, Feier- und Abwesenheitstagen ist das Soll 0,
+    die betriebliche Arbeitszeit zählt dann ganz als Plus."""
     return ist_fuer_eintrag(eintrag) - soll_fuer_tag(eintrag.datum, abwesenheiten, einstellungen)
 
 
@@ -224,6 +216,8 @@ def bewerte_eintrag(eintrag: Zeiteintrag, eintraege: list[Zeiteintrag], abwesenh
     vortag = finde_eintrag(eintraege, vortag_datum)
     vortag_fehlt = ist_fehltag(vortag_datum, heute, eintraege, abwesenheiten, einstellungen)
     meldungen = arbzg.pruefe_tag(eintrag, vortag, vortag_fehlt)
+    meldungen.extend(arbzg.pruefe_mit_anderen_tagen(eintrag, eintraege, abwesenheiten,
+                                                    erfassung_beginn(eintraege, einstellungen), heute))
     return {"ist": ist_fuer_eintrag(eintrag),
             "soll": soll_fuer_tag(eintrag.datum, abwesenheiten, einstellungen),
             "saldo": saldo_fuer_eintrag(eintrag, abwesenheiten, einstellungen),

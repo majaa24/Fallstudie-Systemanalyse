@@ -1,7 +1,7 @@
 """Wendezeit - Arbeitszeiterfassung für die BBQ GmbH. Start: python app.py, dann http://localhost:5000"""
 import os
 import secrets
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from flask import Flask, request, jsonify, session, send_from_directory
 
@@ -323,11 +323,19 @@ def api_stempel():
 
 
 def einstempeln_wenn_frei(zustand: dict, jetzt: datetime) -> dict:
-    """Stempelt ein, außer für heute gibt es schon einen Eintrag."""
-    if zustand["status"] == "aus" and speicher.finde_eintrag(speicher.lade_eintraege(), jetzt.date()) is not None:
+    """Stempelt ein, außer für heute gibt es schon einen Eintrag. Warnt gleich, wenn die Ruhezeit
+    noch nicht um ist oder heute ein Sonntag oder Feiertag ist."""
+    if zustand["status"] != "aus":
+        return {"ok": True, "hinweis": ""}
+    eintraege = speicher.lade_eintraege()
+    if speicher.finde_eintrag(eintraege, jetzt.date()) is not None:
         return {"ok": False, "hinweis": "Für heute gibt es schon einen Eintrag. Bitte im Kalender bearbeiten."}
     stempeluhr.einstempeln(zustand, jetzt)
-    return {"ok": True, "hinweis": ""}
+    vortag = speicher.finde_eintrag(eintraege, jetzt.date() - timedelta(days=1))
+    texte = []
+    for warnung in arbzg.warnungen_beim_einstempeln(jetzt, vortag):
+        texte.append(warnung["paragraph"] + ": " + warnung["text"])
+    return {"ok": True, "hinweis": " ".join(texte), "warnung": len(texte) > 0}
 
 
 def schon_vorhanden_text(neu: Zeiteintrag, vorhanden: Zeiteintrag) -> str:
