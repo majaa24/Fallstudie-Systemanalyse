@@ -41,8 +41,27 @@ Hinweise nach dem ArbZG gleich zu sehen sind.
 - keine Lizenzkosten: Flask (BSD-3), gunicorn (MIT) und tzdata (Apache 2.0) sind Open Source. Bezahlt
   wird nur das Hosting auf Railway.
 
+## Aufbau
+
 Die Fachlogik (ArbZG, Gleitzeit, Stempeluhr) liegt in einem eigenen Ordner `logik/` und weiß nichts von
 Flask. Eine spätere Mobile App kann dieselbe JSON-Schnittstelle nutzen wie die Weboberfläche.
+
+- `app.py` ist der Webserver. Er nimmt die Anfragen der Oberfläche an, ruft die Fachlogik auf und gibt
+  das Ergebnis als JSON zurück. Hier liegt auch der Login.
+- `logik/modelle.py` enthält die Datenklassen: Zeiteintrag, Pause, Abwesenheit und Einstellungen.
+- `logik/zeit.py` rechnet mit Uhrzeiten und Minuten: Arbeitszeit, Zeit zwischen 6 und 22 Uhr, Nachtzeit
+  und Sollzeit je Tag.
+- `logik/speicher.py` liest und schreibt die JSON-Dateien und erzeugt den Passwort-Hash.
+- `logik/arbzg.py` prüft einen Tag nach dem ArbZG (§§ 3, 4, 5, 6, 9 und 11) und kennt die Feiertage in
+  Baden-Württemberg.
+- `logik/gleitzeit.py` berechnet Gleitzeit und Ampel und stellt die Tagesliste für die Oberfläche zusammen.
+- `logik/stempeluhr.py` macht aus Einstempeln, Pausen und Ausstempeln einen Zeiteintrag.
+- `frontend/` ist die Oberfläche: `index.html`, `style.css` und `app.js`.
+- `tests/` enthält die Tests für die Fachlogik und für `demo_laden.py`.
+- `demo_laden.py` kopiert die Beispieldaten aus `daten_demo/` in den Datenordner.
+
+Die Module bauen aufeinander auf. Unten stehen `zeit.py` und `modelle.py`, darauf `speicher.py`, darüber
+`arbzg.py`, `gleitzeit.py` und `stempeluhr.py`. `app.py` benutzt sie alle.
 
 ## Railway
 
